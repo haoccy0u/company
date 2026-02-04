@@ -1,0 +1,7 @@
+[gd_scene format=3 uid="uid://cothha154l1jy"]
+
+[ext_resource type="Script" uid="uid://bwswbsoiyh2ce" path="res://scenes/AttributeComponent.gd" id="1_wb7ia"]
+
+[node name="AttributeComponent" type="Node" unique_id=1458007696]
+script = ExtResource("1_wb7ia")
+metadata/_custom_type_script = "uid://bwswbsoiyh2ce"

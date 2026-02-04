@@ -1,0 +1,30 @@
+[gd_scene format=3 uid="uid://bxtvqljqf3re5"]
+
+[ext_resource type="Script" uid="uid://dkbwqudldkksr" path="res://charactertest.gd" id="1_o00yg"]
+[ext_resource type="PackedScene" uid="uid://cothha154l1jy" path="res://scenes/attribute_component.tscn" id="2_gyoi1"]
+[ext_resource type="Script" uid="uid://b6nf3rveedos5" path="res://scripts/Attribute.gd" id="3_j5jtb"]
+[ext_resource type="Script" uid="uid://cglp22l2gdaem" path="res://scripts/AttributeSet.gd" id="4_yj0vc"]
+
+[sub_resource type="Resource" id="Resource_j5jtb"]
+script = ExtResource("3_j5jtb")
+attribute_name = "maxhp"
+base_value = 100.0
+metadata/_custom_type_script = "uid://b6nf3rveedos5"
+
+[sub_resource type="Resource" id="Resource_kff28"]
+script = ExtResource("3_j5jtb")
+attribute_name = "hp"
+base_value = 50.0
+metadata/_custom_type_script = "uid://b6nf3rveedos5"
+
+[sub_resource type="Resource" id="Resource_yj0vc"]
+script = ExtResource("4_yj0vc")
+attributes = Array[ExtResource("3_j5jtb")]([SubResource("Resource_j5jtb"), SubResource("Resource_kff28")])
+metadata/_custom_type_script = "uid://cglp22l2gdaem"
+
+[node name="charactertest" type="Node2D" unique_id=1780715327]
+script = ExtResource("1_o00yg")
+
+[node name="AttributeComponent" parent="." unique_id=1458007696 instance=ExtResource("2_gyoi1")]
+unique_name_in_owner = true
+attribute_set = SubResource("Resource_yj0vc")
