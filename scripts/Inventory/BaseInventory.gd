@@ -1,5 +1,5 @@
 extends Resource
-class_name Inventory
+class_name BaseInventory
 
 @export var name: String
 @export var size: int
