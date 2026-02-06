@@ -159,7 +159,7 @@ func post_attribute_value_changed(_value: float) -> float:
 #endregion
 
 
-#region 内部
+#region private
 func _compute_value(_operated_value:float) -> float:
 	var derived_attributes: Array[Attribute] = []
 	var derived_attribute_names = derived_from()
