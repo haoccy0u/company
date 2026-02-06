@@ -1,7 +1,6 @@
 extends RefCounted
 class_name InventorySession
 
-## Shift-click transfer is intentionally deferred for a later iteration.
 enum ClickButton {
 	LEFT,
 	RIGHT,
