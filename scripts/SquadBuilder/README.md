@@ -4,109 +4,59 @@
 
 ## 1) BuildSession：单次编队编辑会话的数据模型
 
-`BuildSession` 是一个轻量会话对象，负责记录“当前编队草稿”对仓库资源的预占用状态：
+`BuildSession` 负责记录编队编辑期对资源的预占状态：
 
 - 会话元信息：`session_id`、创建时间 `created_at_msec`、状态 `state`（编辑中 / 已提交 / 已取消）。
-- 物品预占用：`reserved_items`（`item_id -> qty`）。
-- 人员预占用：`reserved_employees`（`employee_id -> true`）。
+- 会话预占用：`reserved_resources`（`resource_id -> qty`）。
 
-它提供最小操作集：
+其中资源采用统一抽象：
 
-- `reserve_item` / `release_item`：增加或减少某个物品的预占数量。
-- `reserve_employee` / `release_employee`：在会话内预占或释放某个员工。
+- 普通物品可为任意正整数数量。
+- 员工也被视为资源，数量只允许 0/1。
 
-> 该类本身不做跨会话冲突校验，只维护“本会话局部数据”；冲突控制由 `WarehouseService` 负责。
+## 2) WarehouseService：真实库存 + 全局预占用协调器
 
-## 2) WarehouseService：真实库存 + 全局预占用的协调器
+`WarehouseService` 维护四类核心状态：
 
-`WarehouseService` 是核心服务，维护三层状态：
+1. 真实物品库存：`_real_item_quantities`
+2. 真实员工池（0/1 量化）：`_real_employee_quantities`
+3. 会话池：`_sessions`
+4. 全局预占总量：`_reserved_item_quantities_total` / `_reserved_employee_quantities_total`
 
-1. **真实资源池**
-   - `_real_items`：真实物品库存。
-   - `_real_employees`：真实员工池。
-2. **会话池**
-   - `_sessions`：所有进行中的 `BuildSession`。
-3. **全局预占用汇总**
-   - `_reserved_items_total`：所有会话的物品预占总和。
-   - `_reserved_employees_total`：所有会话里已被占用的员工集合。
+并通过 `warehouse_changed` 信号通知 UI 刷新。
 
-并通过 `warehouse_changed` 信号对 UI/系统广播状态变化。
+## 3) 统一资源规则
 
-## 3) 可用量计算逻辑
+- 物品可用量：`real_item - reserved_item`
+- 员工可用量：`real_employee(0/1) - reserved_employee(0/1)`
 
-查询接口采用统一规则：
-
-- 物品可用量 = `real - reserved_total`（下限 0）。
-- 员工可用性 = 在真实员工池中且不在全局预占集合中。
-
-这使得多个并发编辑会话能看到一致的“剩余可选资源”。
+因此 UI 可按“资源是否可用（数量 > 0）”进行统一筛选。
 
 ## 4) 会话生命周期
 
-- `create_session()`：创建并返回新 session id。
-- `cancel_session(session_id)`：释放该会话全部预占资源、标记取消并移出会话池。
+- `create_session()`：创建会话。
+- `cancel_session(session_id)`：释放该会话预占用并取消。
+- `commit_session(session_id, squad_build)`：校验一致性后提交并扣减真实资源。
 
-取消或提交都会触发统一的“释放预占用”流程，确保总量账目恢复正确。
+## 5) 提交流程要点
 
-## 5) 编辑期的预占用规则
+提交时会把 `squad_build` 汇总为：
 
-### 物品
+- 物品需求：`_sum_items_from_build`
+- 员工需求：`_sum_employees_from_build`（每人固定 1）
 
-- `reserve_item` 只允许正数，且不能超过当前可用量。
-- `release_item` 只允许正数，且释放量不能超过该会话当前预占量。
-- 每次增减都会同步更新 `_reserved_items_total`。
+再合并成统一资源需求并与会话预占量做强一致校验，不一致则拒绝提交。
 
-### 员工
+校验通过后：
 
-- `reserve_employee` 需要员工存在于真实员工池。
-- 同一会话重复占用同一员工是幂等成功。
-- 若员工已被其他会话占用，则返回不可用错误。
-- `release_employee` 要求该员工确实由该会话占用。
+1. 扣减真实库存 / 真实员工池
+2. 释放会话预占
+3. 标记会话为 `COMMITTED`
+4. 返回 `build_id` 与 `manifest`
 
-## 6) 提交流程（commit_session）
+## 6) 返回结构
 
-`commit_session(session_id, squad_build)` 的关键目标是保证“草稿内容”和“会话预占状态”强一致：
+- 成功返回：`{"ok": true, ...}`
+- 失败返回：`{"ok": false, "reason": "...", "details": {...}}`
 
-1. 从 `squad_build` 汇总所需物品与成员集合。
-2. 与会话中记录的 `reserved_items` / `reserved_employees` 做严格比对。
-   - 不一致即拒绝提交（避免 UI 草稿与底层预占脱节）。
-3. 二次兜底检查真实库存是否足够。
-4. 扣减真实库存。
-5. 释放该会话的全部预占用。
-6. 标记会话为 `COMMITTED` 并移除。
-7. 产出 `manifest`（包含 `build_id`、`vehicle_id`、items 与 employees）。
-
-该设计将“编辑期锁定资源”和“最终扣减资源”分离，降低并发编辑的冲突风险。
-
-## 7) 远征回收接口
-
-`add_items(items)` 用于在远征结算后把资源加回真实仓库，不影响会话结构，只更新真实库存并广播变化。
-
-## 8) 内部辅助函数
-
-- `_release_all_reserved_of_session`：统一释放一个会话的物品与员工预占。
-- `_recalc_reserved_totals`：根据 `_sessions` 全量重算预占汇总（seed 后保持一致性）。
-- `_sum_items_from_build` / `_sum_employees_from_build`：从 `squad_build` 抽取需求。
-- `_dict_equal_int` / `_set_equal`：提交前一致性比较。
-- `_ok` / `_err`：统一返回结构。
-- `_new_id`：生成 session/build id。
-
-## 9) 返回结构与错误风格
-
-该服务接口返回统一字典：
-
-- 成功：`{"ok": true, "payload": {...}}`
-- 失败：`{"ok": false, "reason": "...", "details": {...}}`
-
-便于上层 UI 或流程系统进行稳定分支处理。
-
-## 10) 总体设计总结
-
-SquadBuilder 这部分代码本质上实现了一个“带预占用锁定机制的编队构建库存服务”：
-
-- 支持并行会话编辑。
-- 防止同一员工被多队同时选中。
-- 防止物品超卖。
-- 在提交时通过强一致校验保障最终结果可靠。
-
-适合作为“编队 UI 编辑器”与“仓库/远征结算系统”之间的资源一致性中间层。
+当前仅保留 `_err` 错误构造函数，成功结果按场景直接返回。
