@@ -1,81 +1,55 @@
 extends RefCounted
 class_name InventorySession
 
-enum ClickButton {
-	LEFT,
-	RIGHT,
-}
+var cursor: ItemStack = ItemStack.new()
 
-signal cursor_changed(cursor_slot: InventorySlot)
-signal operation_failed(reason: StringName, context: Dictionary)
+func left_click(container: ItemContainer, index: int) -> void:
+	if container == null:
+		return
+	if index < 0 or index >= container.slots.size():
+		return
 
-var cursor_slot: InventorySlot = InventorySlot.new()
-var containers: Array[InventoryConponent] = []
-
-
-func set_containers(new_containers: Array[InventoryConponent]) -> void:
-	containers = new_containers.duplicate()
-
-
-func click(container_id: int, slot_index: int, button: ClickButton) -> bool:
-	var component := _get_component(container_id)
-	if component == null:
-		emit_signal("operation_failed", &"INVALID_INDEX", {"container_id": container_id})
-		return false
-
-	var slot := component.get_slot(slot_index)
+	var slot := container.slots[index]
 	if slot == null:
-		emit_signal("operation_failed", &"INVALID_INDEX", {"container_id": container_id, "slot_index": slot_index})
-		return false
+		return
 
-	var changed := false
-	match button:
-		ClickButton.LEFT:
-			changed = _handle_left_click(component, slot_index, slot)
-		ClickButton.RIGHT:
-			changed = _handle_right_click(component, slot_index, slot)
-		_:
-			emit_signal("operation_failed", &"NO_OP", {"reason": "unsupported_button"})
-			return false
+	# cursor 空：拿起整堆
+	if cursor.is_empty():
+		if slot.is_empty():
+			return
+		cursor = slot.take(999999)
+		return
 
-	if changed:
-		emit_signal("cursor_changed", cursor_slot)
-	return changed
+	# cursor 非空：
+	# slot 空 或 同物品 -> 放入/合并（即使合并失败，比如已满，也不交换）
+	if slot.is_empty() or (slot.item != null and slot.item.item_id == cursor.item.item_id):
+		slot.place_from(cursor, -1)
+		return
 
+	# 不同物品 -> 交换
+	slot.swap_with(cursor)
 
-func _handle_left_click(component: InventoryConponent, slot_index: int, slot: InventorySlot) -> bool:
-	if cursor_slot.is_empty() and not slot.is_empty():
-		return component.move_full_to_cursor(slot_index, cursor_slot)
+func right_click(container: ItemContainer, index: int) -> void:
+	if container == null:
+		return
+	if index < 0 or index >= container.slots.size():
+		return
 
-	if not cursor_slot.is_empty() and slot.is_empty():
-		return component.place_full_from_cursor(slot_index, cursor_slot)
+	var slot := container.slots[index]
+	if slot == null:
+		return
 
-	if cursor_slot.is_empty() and slot.is_empty():
-		return false
+	# cursor 空：拿一半
+	if cursor.is_empty():
+		if slot.is_empty():
+			return
+		var half: int = (slot.count + 1) >> 1  # ceil(count/2)
+		cursor = slot.take(half)
+		return
 
-	if slot.item_id == cursor_slot.item_id:
-		return component.merge_from_cursor(slot_index, cursor_slot) > 0
+	# cursor 非空：只放 1 个（空槽 or 同物品）
+	if slot.is_empty() or (slot.item != null and slot.item.item_id == cursor.item.item_id):
+		slot.place_from(cursor, 1)
+		return
 
-	return component.swap_with_cursor(slot_index, cursor_slot)
-
-
-func _handle_right_click(component: InventoryConponent, slot_index: int, slot: InventorySlot) -> bool:
-	if cursor_slot.is_empty() and not slot.is_empty():
-		return component.pickup_half_to_cursor(slot_index, cursor_slot)
-
-	if not cursor_slot.is_empty() and slot.is_empty():
-		return component.place_one_from_cursor(slot_index, cursor_slot)
-
-	if cursor_slot.is_empty() and slot.is_empty():
-		return false
-
-	if slot.item_id == cursor_slot.item_id:
-		return component.place_one_from_cursor(slot_index, cursor_slot)
-
-	return component.swap_with_cursor(slot_index, cursor_slot)
-
-
-func _get_component(container_id: int) -> InventoryConponent:
-	if container_id < 0 or container_id >= containers.size():
-		return null
-	return containers[container_id]
+	# 不同物品：右键不交换，什么都不做

@@ -1,0 +1,12 @@
+[gd_resource type="Resource" script_class="ItemData" format=3 uid="uid://dswhof6ow56pb"]
+
+[ext_resource type="Script" uid="uid://bokp6vo4vmbal" path="res://scripts/Inventory/ItemData.gd" id="1_0852i"]
+[ext_resource type="Texture2D" uid="uid://lo3deuk8tmpm" path="res://resource/blue.png" id="2_wqnuo"]
+
+[resource]
+script = ExtResource("1_0852i")
+item_id = &"blue"
+item_name = "Blue Block"
+texture = ExtResource("2_wqnuo")
+max_stack = 64
+metadata/_custom_type_script = "uid://bokp6vo4vmbal"
