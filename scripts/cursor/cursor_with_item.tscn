@@ -1,0 +1,29 @@
+[gd_scene format=3 uid="uid://behrji6ltaa3q"]
+
+[ext_resource type="Script" uid="uid://df3yi2umg7f3i" path="res://scripts/cursor/CursorWithItem.gd" id="1_v03h1"]
+
+[node name="CursorWithItem" type="Control" unique_id=673526769]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1_v03h1")
+
+[node name="Icon" type="TextureRect" parent="." unique_id=208685218]
+layout_mode = 0
+offset_right = 40.0
+offset_bottom = 40.0
+
+[node name="Count" type="Label" parent="Icon" unique_id=735975748]
+layout_mode = 1
+anchors_preset = 3
+anchor_left = 1.0
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = -24.0
+offset_top = -23.0
+grow_horizontal = 0
+grow_vertical = 0

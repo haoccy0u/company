@@ -2,71 +2,103 @@ extends Control
 class_name InventoryUIPanel
 
 @export var slot_scene: PackedScene
-@export var item_red: ItemData
-@export var item_blue: ItemData
 
 @onready var backpack_grid: GridContainer = $VBoxContainer/BackpackGrid
 @onready var chest_grid: GridContainer = $VBoxContainer/ChestGrid
 
-
-
 var session: InventorySession
-var backpack: ItemContainer
-var chest: ItemContainer
+var backpack_comp: InventoryComponent
+var chest_comp: InventoryComponent
 
 func _ready() -> void:
 	session = InventorySession.new()
+	visible = false  # 默认不显示，等 open_with 再打开
 
-	# 创建两个容器（数据层）
-	backpack = _make_backpack_container()
-	chest = _make_chest_container()
+func open_with(_backpack: InventoryComponent, _chest: InventoryComponent) -> void:
+	# 可选：解绑旧信号
+	_disconnect_components()
 
-	# 构建两边 UI
-	_build_grid(backpack_grid, backpack, 9)
-	_build_grid(chest_grid, chest, 9)
+	backpack_comp = _backpack
+	chest_comp = _chest
+
+	# 可选：监听 changed 自动刷新（即使你 SlotControl 也会手动 refresh，也没关系）
+	_connect_components()
+
+	_build_grid(backpack_grid, backpack_comp, 9)
+	_build_grid(chest_grid, chest_comp, 9)
 
 	refresh_all()
+	visible = true
 
-
-func _build_grid(grid: GridContainer, container: ItemContainer, columns: int) -> void:
+func _build_grid(grid: GridContainer, comp: InventoryComponent, columns: int) -> void:
 	for child in grid.get_children():
 		child.queue_free()
 
 	grid.columns = columns
+	var n := comp.get_slot_count()
 
-	for i in range(container.slots.size()):
+	for i in range(n):
 		var ui := slot_scene.instantiate() as SlotControl
-		grid.add_child(ui)  # ✅ 先进树，@onready 才会生效
-		ui.bind(container, i, session, Callable(self, "refresh_all"))
+		grid.add_child(ui) # ✅ 先入树
+		ui.bind(comp, i, session, Callable(self, "refresh_all"))
 
+func _connect_components() -> void:
+	var cb := Callable(self, "refresh_all")
+	if backpack_comp != null and not backpack_comp.changed.is_connected(cb):
+		backpack_comp.changed.connect(cb)
+	if chest_comp != null and not chest_comp.changed.is_connected(cb):
+		chest_comp.changed.connect(cb)
+
+func _disconnect_components() -> void:
+	var cb := Callable(self, "refresh_all")
+	if backpack_comp != null and backpack_comp.changed.is_connected(cb):
+		backpack_comp.changed.disconnect(cb)
+	if chest_comp != null and chest_comp.changed.is_connected(cb):
+		chest_comp.changed.disconnect(cb)
 
 func refresh_all() -> void:
 	for child in backpack_grid.get_children():
 		(child as SlotControl).refresh()
 	for child in chest_grid.get_children():
 		(child as SlotControl).refresh()
-	# 下一步我们会在这里同步 cursor UI（跟随鼠标）
 
 
-# ------------------- demo containers -------------------
-
-func _make_backpack_container() -> ItemContainer:
-	var c := ItemContainer.new()
-	c.slot_count = 27
-
-	# 背包默认塞红方块
-	if item_red != null:
-		c.try_insert(item_red, 70)
-
-	return c
+func _unhandled_input(event: InputEvent) -> void:
+	if not visible:
+		return
+	if event is InputEventKey and event.pressed and event.keycode == KEY_ESCAPE:
+		request_close()
+		accept_event()
 
 
-func _make_chest_container() -> ItemContainer:
-	var c := ItemContainer.new()
-	c.slot_count = 27
+func request_close() -> void:
+	var ok := session.return_cursor_to_origin(backpack_comp)
+	if not ok:
+		push_warning("Can't close: cursor items couldn't be returned.")
+		refresh_all()
+		return
 
-	# 箱子默认塞蓝方块
-	if item_blue != null:
-		c.try_insert(item_blue, 20)
+	visible = false
 
-	return c
+
+func _try_return_cursor_to_backpack() -> bool:
+	if session == null or session.cursor == null or session.cursor.is_empty():
+		return true
+
+	if backpack_comp == null:
+		return false
+
+	# 尝试把 cursor 全部塞回背包
+	var item := session.cursor.item
+	var amount := session.cursor.count
+	var rem := backpack_comp.try_insert(item, amount)
+
+	if rem <= 0:
+		# 全部放回成功
+		session.clear_cursor()  # 或者手动 item=null,count=0
+		return true
+
+	# 还剩 rem 个塞不下：阻止关闭
+	session.cursor.count = rem
+	# item 不变（仍是同一个物品）
+	return false

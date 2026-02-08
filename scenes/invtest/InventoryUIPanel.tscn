@@ -2,8 +2,6 @@
 
 [ext_resource type="Script" uid="uid://bvx7svcbxdahn" path="res://scenes/invtest/InventoryUIPanel.gd" id="1_auoyx"]
 [ext_resource type="PackedScene" uid="uid://cjoqsbp6mwuto" path="res://scenes/invtest/SlotControl.tscn" id="2_bh5i4"]
-[ext_resource type="Resource" uid="uid://cjjkjj2pwysgt" path="res://resource/item_red.tres" id="3_8gkdi"]
-[ext_resource type="Resource" uid="uid://dswhof6ow56pb" path="res://resource/item_blue.tres" id="4_g8d22"]
 
 [node name="InventoryUIPanel" type="Control" unique_id=1160566473]
 layout_mode = 3
@@ -17,8 +15,6 @@ grow_vertical = 2
 size_flags_horizontal = 4
 script = ExtResource("1_auoyx")
 slot_scene = ExtResource("2_bh5i4")
-item_red = ExtResource("3_8gkdi")
-item_blue = ExtResource("4_g8d22")
 
 [node name="VBoxContainer" type="VBoxContainer" parent="." unique_id=891401235]
 layout_mode = 1
