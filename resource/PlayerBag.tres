@@ -1,0 +1,9 @@
+[gd_resource type="Resource" script_class="ItemContainer" format=3 uid="uid://enx5l0h4u7lo"]
+
+[ext_resource type="Script" uid="uid://jkjmucslt1y7" path="res://scripts/inventory/ItemContainer.gd" id="1_qyubj"]
+[ext_resource type="Script" uid="uid://csdx6b5t6lkaa" path="res://scripts/inventory/Slot.gd" id="2_p23fr"]
+
+[resource]
+script = ExtResource("1_qyubj")
+item_container_id = &"bagpack"
+metadata/_custom_type_script = "uid://jkjmucslt1y7"

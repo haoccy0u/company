@@ -1,0 +1,27 @@
+[gd_scene format=3 uid="uid://die76oj2duhnp"]
+
+[ext_resource type="Script" uid="uid://ch0dnpcn4ap1k" path="res://scenes/invtest/chest.gd" id="1_6obpf"]
+[ext_resource type="Script" uid="uid://deh2x3u3uxjcr" path="res://scripts/inventory/InventoryComponent.gd" id="1_k8i2o"]
+[ext_resource type="Resource" uid="uid://dbvmahaap6j4h" path="res://resource/chest.tres" id="2_6obpf"]
+[ext_resource type="Resource" uid="uid://dswhof6ow56pb" path="res://resource/item_blue.tres" id="2_vynsf"]
+
+[node name="Chest" type="Button" unique_id=1067968191]
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -4.0
+offset_top = -4.0
+offset_right = 4.0
+offset_bottom = 4.0
+grow_horizontal = 2
+grow_vertical = 2
+size_flags_horizontal = 4
+script = ExtResource("1_6obpf")
+item_blue = ExtResource("2_vynsf")
+
+[node name="InventoryComponent" type="Node" parent="." unique_id=1560830536]
+script = ExtResource("1_k8i2o")
+container_template = ExtResource("2_6obpf")
+metadata/_custom_type_script = "uid://deh2x3u3uxjcr"

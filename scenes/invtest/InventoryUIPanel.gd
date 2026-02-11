@@ -5,7 +5,9 @@ class_name InventoryUIPanel
 
 @onready var backpack_grid: GridContainer = $VBoxContainer/BackpackGrid
 @onready var chest_grid: GridContainer = $VBoxContainer/ChestGrid
+@export var cursor_scene: PackedScene
 
+var cursor_ui: CursorWithItem
 var session: InventorySession
 var backpack_comp: InventoryComponent
 var chest_comp: InventoryComponent
@@ -13,6 +15,7 @@ var chest_comp: InventoryComponent
 func _ready() -> void:
 	session = InventorySession.new()
 	visible = false  # 默认不显示，等 open_with 再打开
+	_ensure_cursor()
 
 func open_with(_backpack: InventoryComponent, _chest: InventoryComponent) -> void:
 	# 可选：解绑旧信号
@@ -61,6 +64,9 @@ func refresh_all() -> void:
 		(child as SlotControl).refresh()
 	for child in chest_grid.get_children():
 		(child as SlotControl).refresh()
+	if cursor_ui != null:
+		cursor_ui.sync(session)
+
 
 
 func _unhandled_input(event: InputEvent) -> void:
@@ -102,3 +108,13 @@ func _try_return_cursor_to_backpack() -> bool:
 	session.cursor.count = rem
 	# item 不变（仍是同一个物品）
 	return false
+
+func _ensure_cursor():
+	if cursor_ui != null:
+		return
+	if cursor_scene == null:
+		return
+	cursor_ui = cursor_scene.instantiate() as CursorWithItem
+	add_child(cursor_ui)
+	# 放到最上层
+	move_child(cursor_ui, get_child_count() - 1)

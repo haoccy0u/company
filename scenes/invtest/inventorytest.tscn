@@ -1,0 +1,28 @@
+[gd_scene format=3 uid="uid://bwhjodpwrti7i"]
+
+[ext_resource type="PackedScene" uid="uid://bbaelilfqyjr1" path="res://scenes/invtest/player.tscn" id="1_5ldwe"]
+[ext_resource type="PackedScene" uid="uid://die76oj2duhnp" path="res://scenes/invtest/chest.tscn" id="2_63pc5"]
+[ext_resource type="Script" uid="uid://cyrmuwibx52d1" path="res://scenes/invtest/HUD.gd" id="3_8wuhn"]
+[ext_resource type="PackedScene" uid="uid://dwvueefmci38n" path="res://scenes/invtest/InventoryUIPanel.tscn" id="4_ur68j"]
+
+[node name="Inventorytest" type="Node2D" unique_id=76294879]
+position = Vector2(893, 487)
+
+[node name="player" parent="." unique_id=902629533 instance=ExtResource("1_5ldwe")]
+
+[node name="Chest" parent="." unique_id=1067968191 instance=ExtResource("2_63pc5")]
+custom_minimum_size = Vector2(200, 100)
+anchors_preset = 7
+anchor_top = 1.0
+anchor_bottom = 1.0
+offset_left = -97.0
+offset_top = -83.0
+offset_right = 103.0
+offset_bottom = 17.0
+grow_vertical = 0
+text = "CHEST,Click to open
+"
+
+[node name="CanvasLayer" type="CanvasLayer" parent="." unique_id=722082253]
+script = ExtResource("3_8wuhn")
+inventory_ui_scene = ExtResource("4_ur68j")

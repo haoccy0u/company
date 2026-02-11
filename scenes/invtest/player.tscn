@@ -1,0 +1,17 @@
+[gd_scene format=3 uid="uid://bbaelilfqyjr1"]
+
+[ext_resource type="Script" uid="uid://duypu3y4qfun6" path="res://scenes/invtest/player.gd" id="1_5elvv"]
+[ext_resource type="Script" uid="uid://deh2x3u3uxjcr" path="res://scripts/inventory/InventoryComponent.gd" id="1_exrft"]
+[ext_resource type="Resource" uid="uid://cjjkjj2pwysgt" path="res://resource/item_red.tres" id="2_lnyoa"]
+[ext_resource type="Resource" uid="uid://enx5l0h4u7lo" path="res://resource/PlayerBag.tres" id="2_pnocs"]
+[ext_resource type="Resource" uid="uid://dswhof6ow56pb" path="res://resource/item_blue.tres" id="3_7p5s8"]
+
+[node name="player" type="Node2D" unique_id=902629533]
+script = ExtResource("1_5elvv")
+item_red = ExtResource("2_lnyoa")
+item_blue = ExtResource("3_7p5s8")
+
+[node name="PlayerInv" type="Node" parent="." unique_id=1310806775]
+script = ExtResource("1_exrft")
+container_template = ExtResource("2_pnocs")
+metadata/_custom_type_script = "uid://deh2x3u3uxjcr"
