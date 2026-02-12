@@ -15,9 +15,9 @@ func left_click(comp: InventoryComponent, index: int) -> void:
 	if cursor.is_empty():
 		if slot.is_empty():
 			return
-		cursor = slot.take(slot.count)
-		cursor_origin = comp
-		comp.notify_changed()
+		var take_result := comp.take_to_cursor(index, cursor, -1)
+		if bool(take_result["changed"]):
+			cursor_origin = comp
 		return
 
 	# cursor has item: place/merge into empty or same-item slot.
@@ -26,9 +26,9 @@ func left_click(comp: InventoryComponent, index: int) -> void:
 		return
 
 	# Different item: swap.
-	slot.swap_with(cursor)
-	cursor_origin = comp
-	comp.notify_changed()
+	var swap_result := comp.swap_with_cursor(index, cursor)
+	if bool(swap_result["changed"]):
+		cursor_origin = comp
 
 
 func right_click(comp: InventoryComponent, index: int) -> void:
@@ -40,10 +40,10 @@ func right_click(comp: InventoryComponent, index: int) -> void:
 	if cursor.is_empty():
 		if slot.is_empty():
 			return
-		var half: int = (slot.count + 1) >> 1
-		cursor = slot.take(half)
-		cursor_origin = comp
-		comp.notify_changed()
+		var half: int = slot.count >> 1
+		var take_result := comp.take_to_cursor(index, cursor, half)
+		if bool(take_result["changed"]):
+			cursor_origin = comp
 		return
 
 	# cursor has item: place one into empty or same-item slot.
@@ -55,8 +55,7 @@ func right_click(comp: InventoryComponent, index: int) -> void:
 
 
 func clear_cursor() -> void:
-	cursor.item = null
-	cursor.count = 0
+	cursor.clear()
 	cursor_origin = null
 
 

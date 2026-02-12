@@ -4,6 +4,10 @@ class_name ItemStack
 var item: ItemData = null
 var count: int = 0
 
+func clear() -> void:
+	item = null
+	count = 0
+
 func is_empty() -> bool:
 	return item == null or count <= 0
 

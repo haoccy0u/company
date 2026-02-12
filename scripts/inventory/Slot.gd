@@ -75,8 +75,7 @@ func place_from(stack: ItemStack, amount: int = -1) -> void:
 		count = put
 		stack.count -= put
 		if stack.count <= 0:
-			stack.item = null
-			stack.count = 0
+			stack.clear()
 		return
 
 	# 非空：不是同物品就不合并（由 swap 决定）
@@ -93,8 +92,7 @@ func place_from(stack: ItemStack, amount: int = -1) -> void:
 	count += put2
 	stack.count -= put2
 	if stack.count <= 0:
-		stack.item = null
-		stack.count = 0
+		stack.clear()
 
 func swap_with(stack: ItemStack) -> void:
 	if stack == null:
