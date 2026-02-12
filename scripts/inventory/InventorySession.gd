@@ -5,10 +5,9 @@ var cursor: ItemStack = ItemStack.new()
 var cursor_origin: InventoryComponent = null
 
 
+#region Public
 func left_click(comp: InventoryComponent, index: int) -> void:
-	if comp == null:
-		return
-	var slot := comp.get_slot(index)
+	var slot := _get_slot_or_null(comp, index)
 	if slot == null:
 		return
 
@@ -23,7 +22,7 @@ func left_click(comp: InventoryComponent, index: int) -> void:
 
 	# cursor has item: place/merge into empty or same-item slot.
 	if slot.is_empty() or (slot.item != null and slot.item.item_id == cursor.item.item_id):
-		_place_and_notify_if_changed(comp, slot, -1)
+		_place_and_notify_if_changed(comp, index, -1)
 		return
 
 	# Different item: swap.
@@ -33,9 +32,7 @@ func left_click(comp: InventoryComponent, index: int) -> void:
 
 
 func right_click(comp: InventoryComponent, index: int) -> void:
-	if comp == null:
-		return
-	var slot := comp.get_slot(index)
+	var slot := _get_slot_or_null(comp, index)
 	if slot == null:
 		return
 
@@ -51,7 +48,7 @@ func right_click(comp: InventoryComponent, index: int) -> void:
 
 	# cursor has item: place one into empty or same-item slot.
 	if slot.is_empty() or (slot.item != null and slot.item.item_id == cursor.item.item_id):
-		_place_and_notify_if_changed(comp, slot, 1)
+		_place_and_notify_if_changed(comp, index, 1)
 		return
 
 	# Different item on right click: no-op.
@@ -80,17 +77,17 @@ func return_cursor_to_origin(fallback: InventoryComponent = null) -> bool:
 	# Still cannot fully return: keep remaining cursor stack and block close.
 	cursor.count = rem
 	return false
+#endregion
 
 
-func _place_and_notify_if_changed(comp: InventoryComponent, slot: Slot, amount: int) -> void:
-	var before_item := slot.item
-	var before_slot_count := slot.count
-	var before_cursor_count := cursor.count
-
-	slot.place_from(cursor, amount)
-
-	if slot.item != before_item or slot.count != before_slot_count or cursor.count != before_cursor_count:
-		comp.notify_changed()
-
+#region Private
+func _place_and_notify_if_changed(comp: InventoryComponent, index: int, amount: int) -> void:
+	comp.place_from_cursor(index, cursor, amount)
 	if cursor.is_empty():
 		cursor_origin = null
+
+func _get_slot_or_null(comp: InventoryComponent, index: int) -> Slot:
+	if comp == null:
+		return null
+	return comp.get_slot(index)
+#endregion

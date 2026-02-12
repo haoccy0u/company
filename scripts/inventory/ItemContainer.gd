@@ -49,8 +49,17 @@ func _rebuild_slots_preserve() -> void:
 
 
 func try_insert(insert_item: ItemData, amount: int) -> int:
+	var outcome := try_insert_result(insert_item, amount)
+	return int(outcome["remainder"])
+
+func try_insert_result(insert_item: ItemData, amount: int) -> Dictionary:
 	if insert_item == null or amount <= 0:
-		return amount
+		return {
+			"changed": false,
+			"moved": 0,
+			"remainder": amount,
+			"reason": &"invalid_input"
+		}
 
 	var remaining := amount
 
@@ -68,4 +77,15 @@ func try_insert(insert_item: ItemData, amount: int) -> int:
 		if s != null and s.is_empty():
 			remaining = s.add_items(insert_item, remaining)
 
-	return remaining
+	var moved := maxi(amount - remaining, 0)
+	var did_change := moved > 0
+	var reason: StringName = &"ok"
+	if not did_change:
+		reason = &"no_space"
+
+	return {
+		"changed": did_change,
+		"moved": moved,
+		"remainder": remaining,
+		"reason": reason
+	}
