@@ -34,14 +34,14 @@ func notify_changed() -> void:
 	changed.emit()
 
 func try_insert(item: ItemData, amount: int) -> int:
-	var outcome := try_insert_result(item, amount)
-	if bool(outcome["changed"]):
-		notify_changed()
-	return int(outcome["remainder"])
+	return int(try_insert_result(item, amount)["remainder"])
 
 func try_insert_result(item: ItemData, amount: int) -> Dictionary:
 	ensure_initialized()
-	return container.try_insert_result(item, amount)
+	var result := container.try_insert_result(item, amount)
+	if bool(result["changed"]):
+		notify_changed()
+	return result
 
 func place_from_cursor(index: int, cursor_stack: ItemStack, amount: int = -1) -> Dictionary:
 	ensure_initialized()
