@@ -28,8 +28,9 @@ func get_slot(index: int) -> Slot:
 		return null
 	return container.slots[index]
 
+# Single source of truth for inventory data-change notifications.
 func notify_changed() -> void:
-	emit_signal("changed")
+	changed.emit()
 
 func try_insert(item: ItemData, amount: int) -> int:
 	ensure_initialized()
@@ -37,7 +38,6 @@ func try_insert(item: ItemData, amount: int) -> int:
 		return amount
 
 	var rem := container.try_insert(item, amount)
-	# 只有真的插入了才通知 changed
 	if rem != amount:
 		notify_changed()
 	return rem

@@ -12,23 +12,23 @@ func left_click(comp: InventoryComponent, index: int) -> void:
 	if slot == null:
 		return
 
-	# cursor 空：拿起整堆
+	# cursor empty: pick full stack.
 	if cursor.is_empty():
 		if slot.is_empty():
 			return
-		cursor = slot.take(999999)
-		cursor_origin = comp  
+		cursor = slot.take(slot.count)
+		cursor_origin = comp
 		comp.notify_changed()
 		return
 
-	# cursor 非空：slot 空 或 同物品 -> 放入/合并
+	# cursor has item: place/merge into empty or same-item slot.
 	if slot.is_empty() or (slot.item != null and slot.item.item_id == cursor.item.item_id):
 		_place_and_notify_if_changed(comp, slot, -1)
 		return
 
-	# 不同物品：交换
+	# Different item: swap.
 	slot.swap_with(cursor)
-	cursor_origin = comp  
+	cursor_origin = comp
 	comp.notify_changed()
 
 
@@ -39,22 +39,22 @@ func right_click(comp: InventoryComponent, index: int) -> void:
 	if slot == null:
 		return
 
-	# cursor 空：拿一半
+	# cursor empty: pick half.
 	if cursor.is_empty():
 		if slot.is_empty():
 			return
 		var half: int = (slot.count + 1) >> 1
 		cursor = slot.take(half)
-		cursor_origin = comp 
+		cursor_origin = comp
 		comp.notify_changed()
 		return
 
-	# cursor 非空：空槽或同物品 -> 放 1
+	# cursor has item: place one into empty or same-item slot.
 	if slot.is_empty() or (slot.item != null and slot.item.item_id == cursor.item.item_id):
 		_place_and_notify_if_changed(comp, slot, 1)
 		return
 
-	# 不同物品：右键无动作
+	# Different item on right click: no-op.
 
 
 func clear_cursor() -> void:
@@ -77,11 +77,9 @@ func return_cursor_to_origin(fallback: InventoryComponent = null) -> bool:
 		clear_cursor()
 		return true
 
-	# 仍然塞不下：不丢地上 -> 返回失败（阻止关闭）// 以后扩展
+	# Still cannot fully return: keep remaining cursor stack and block close.
 	cursor.count = rem
 	return false
-
-
 
 
 func _place_and_notify_if_changed(comp: InventoryComponent, slot: Slot, amount: int) -> void:
@@ -94,6 +92,5 @@ func _place_and_notify_if_changed(comp: InventoryComponent, slot: Slot, amount: 
 	if slot.item != before_item or slot.count != before_slot_count or cursor.count != before_cursor_count:
 		comp.notify_changed()
 
-	# 放完了就不需要 origin 了
 	if cursor.is_empty():
 		cursor_origin = null
