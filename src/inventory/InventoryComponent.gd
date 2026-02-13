@@ -3,12 +3,19 @@ class_name InventoryComponent
 
 signal changed
 
+const SAVE_GROUP := "saveable"
+const INVENTORY_SAVE_CODEC := preload("res://src/save/codecs/InventorySaveCodec.gd")
+
+@export var save_enabled: bool = true
+@export var save_id: StringName = &""
 @export var container_template: ItemContainer
 var container: ItemContainer
 
 #region Public
 func _ready() -> void:
 	ensure_initialized()
+	if save_enabled and not is_in_group(SAVE_GROUP):
+		add_to_group(SAVE_GROUP)
 
 func ensure_initialized() -> void:
 	if container != null:
@@ -28,6 +35,35 @@ func get_slot(index: int) -> Slot:
 	if index < 0 or index >= container.slots.size():
 		return null
 	return container.slots[index]
+
+func get_save_id() -> String:
+	if not save_enabled:
+		return ""
+	if not save_id.is_empty():
+		return String(save_id)
+	var node_path_id := String(get_path())
+	if not node_path_id.is_empty():
+		return node_path_id
+	if container_template != null and not container_template.item_container_id.is_empty():
+		return String(container_template.item_container_id)
+	ensure_initialized()
+	if container != null and not container.item_container_id.is_empty():
+		return String(container.item_container_id)
+	return ""
+
+func get_save_type() -> String:
+	return "inventory"
+
+func capture_state() -> Dictionary:
+	ensure_initialized()
+	return INVENTORY_SAVE_CODEC.capture(self)
+
+func apply_state(data: Dictionary) -> bool:
+	ensure_initialized()
+	var applied: bool = bool(INVENTORY_SAVE_CODEC.apply(self, data))
+	if applied:
+		notify_changed()
+	return applied
 
 # Single source of truth for inventory data-change notifications.
 func notify_changed() -> void:
@@ -122,9 +158,9 @@ func swap_with_cursor(index: int, cursor_stack: ItemStack) -> Dictionary:
 #endregion
 
 #region Private
-func _make_result(changed: bool, moved: int, remainder: int, reason: StringName, meta: Dictionary = {}) -> Dictionary:
+func _make_result(did_change: bool, moved: int, remainder: int, reason: StringName, meta: Dictionary = {}) -> Dictionary:
 	return {
-		"changed": changed,
+		"changed": did_change,
 		"moved": moved,
 		"remainder": remainder,
 		"reason": reason,
