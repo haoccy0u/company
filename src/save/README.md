@@ -9,6 +9,7 @@
 ## 2. 当前目录结构
 - `src/save/SaveManager.gd`：存档总控（Autoload 单例）。
 - `src/save/Saveable.gd`：Saveable 协议校验（鸭子类型检查）。
+- `src/save/SaveReport.gd`：存档结果对象（report）构建与字段访问工具。
 - `src/save/codecs/InventorySaveCodec.gd`：库存编解码逻辑。
 - `src/save/README.md`：本文档。
 

@@ -42,7 +42,7 @@ func setter_computed_value(value):
 func notify_attribute_change():
 	attribute_changed.emit(self)
 
-func update_cpmputed_value():
+func update_computed_value():
 	computed_value = _compute_value(computed_value)
 
 ## AttributeSet

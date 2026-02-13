@@ -5,6 +5,7 @@ signal changed
 
 const SAVE_GROUP := "saveable"
 const INVENTORY_SAVE_CODEC := preload("res://src/save/codecs/InventorySaveCodec.gd")
+const INVENTORY_RESULT := preload("res://src/inventory/InventoryResult.gd")
 
 @export var save_enabled: bool = true
 @export var save_id: StringName = &""
@@ -70,12 +71,12 @@ func notify_changed() -> void:
 	changed.emit()
 
 func try_insert(item: ItemData, amount: int) -> int:
-	return int(try_insert_result(item, amount)["remainder"])
+	return INVENTORY_RESULT.remainder_of(try_insert_result(item, amount))
 
 func try_insert_result(item: ItemData, amount: int) -> Dictionary:
 	ensure_initialized()
 	var result := container.try_insert_result(item, amount)
-	if bool(result["changed"]):
+	if INVENTORY_RESULT.changed_of(result):
 		notify_changed()
 	return result
 
@@ -159,11 +160,5 @@ func swap_with_cursor(index: int, cursor_stack: ItemStack) -> Dictionary:
 
 #region Private
 func _make_result(did_change: bool, moved: int, remainder: int, reason: StringName, meta: Dictionary = {}) -> Dictionary:
-	return {
-		"changed": did_change,
-		"moved": moved,
-		"remainder": remainder,
-		"reason": reason,
-		"meta": meta
-	}
+	return INVENTORY_RESULT.make(did_change, moved, remainder, reason, meta, true)
 #endregion

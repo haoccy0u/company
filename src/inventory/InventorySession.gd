@@ -1,6 +1,8 @@
 extends RefCounted
 class_name InventorySession
 
+const INVENTORY_RESULT := preload("res://src/inventory/InventoryResult.gd")
+
 var cursor: ItemStack = ItemStack.new()
 var cursor_origin: InventoryComponent = null
 
@@ -16,7 +18,7 @@ func left_click(comp: InventoryComponent, index: int) -> void:
 		if slot.is_empty():
 			return
 		var take_result := comp.take_to_cursor(index, cursor, -1)
-		if bool(take_result["changed"]):
+		if INVENTORY_RESULT.changed_of(take_result):
 			cursor_origin = comp
 		return
 
@@ -27,7 +29,7 @@ func left_click(comp: InventoryComponent, index: int) -> void:
 
 	# Different item: swap.
 	var swap_result := comp.swap_with_cursor(index, cursor)
-	if bool(swap_result["changed"]):
+	if INVENTORY_RESULT.changed_of(swap_result):
 		cursor_origin = comp
 
 
@@ -42,7 +44,7 @@ func right_click(comp: InventoryComponent, index: int) -> void:
 			return
 		var half: int = slot.count >> 1
 		var take_result := comp.take_to_cursor(index, cursor, half)
-		if bool(take_result["changed"]):
+		if INVENTORY_RESULT.changed_of(take_result):
 			cursor_origin = comp
 		return
 

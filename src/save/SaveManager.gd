@@ -4,6 +4,7 @@ signal save_finished(save_slot: int, report: Dictionary)
 signal load_finished(save_slot: int, report: Dictionary)
 
 const SAVEABLE_PROTOCOL := preload("res://src/save/Saveable.gd")
+const SAVE_REPORT := preload("res://src/save/SaveReport.gd")
 const SAVE_GROUP := "saveable"
 const SAVE_VERSION := 1
 const SAVE_DIR := "user://saves"
@@ -13,59 +14,13 @@ const SAVE_FILE_SUFFIX := ".json"
 
 func save_slot(save_slot_id: int = 1) -> Dictionary:
 	var path: String = _save_slot_path(save_slot_id)
-	var report: Dictionary = {
-		"ok": false,
-		"path": path,
-		"saved_ids": [],
-		"skipped_nodes": [],
-		"errors": []
-	}
+	var report: Dictionary = SAVE_REPORT.make_save(path)
 	if save_slot_id <= 0:
-		report["errors"].append("invalid_save_slot")
+		SAVE_REPORT.add_error(report, "invalid_save_slot")
 		save_finished.emit(save_slot_id, report)
 		return report
 
-	var payload_nodes: Array[Dictionary] = []
-	var seen_ids: Dictionary = {}
-
-	for node_variant in get_tree().get_nodes_in_group(SAVE_GROUP):
-		var node: Node = node_variant as Node
-		var validation: Dictionary = SAVEABLE_PROTOCOL.validate_node(node)
-		if not bool(validation["ok"]):
-			report["skipped_nodes"].append({
-				"path": str(node.get_path()) if node != null else "<null>",
-				"reason": validation["reason"]
-			})
-			continue
-
-		var save_id: String = String(node.call("get_save_id"))
-		if save_id.is_empty():
-			report["skipped_nodes"].append({
-				"path": str(node.get_path()),
-				"reason": "empty_save_id"
-			})
-			continue
-		if seen_ids.has(save_id):
-			report["errors"].append("duplicate_save_id:%s" % save_id)
-			continue
-
-		var state_variant: Variant = node.call("capture_state")
-		if not (state_variant is Dictionary):
-			report["skipped_nodes"].append({
-				"id": save_id,
-				"reason": "capture_state_not_dictionary"
-			})
-			continue
-
-		var state: Dictionary = state_variant
-		seen_ids[save_id] = true
-		var save_type: String = String(node.call("get_save_type")) if node.has_method("get_save_type") else String(node.get_class())
-		payload_nodes.append({
-			"id": save_id,
-			"type": save_type,
-			"state": state
-		})
-		report["saved_ids"].append(save_id)
+	var payload_nodes: Array[Dictionary] = _collect_save_payload_nodes(report)
 
 	var payload: Dictionary = {
 		"version": SAVE_VERSION,
@@ -75,88 +30,51 @@ func save_slot(save_slot_id: int = 1) -> Dictionary:
 
 	var write_result: int = _write_json(path, payload)
 	if write_result != OK:
-		report["errors"].append("write_failed:%s" % error_string(write_result))
+		SAVE_REPORT.add_error(report, "write_failed:%s" % error_string(write_result))
 		save_finished.emit(save_slot_id, report)
 		return report
 
-	report["ok"] = true
+	SAVE_REPORT.set_ok(report, true)
 	save_finished.emit(save_slot_id, report)
 	return report
 
 
 func load_slot(save_slot_id: int = 1) -> Dictionary:
 	var path: String = _save_slot_path(save_slot_id)
-	var report: Dictionary = {
-		"ok": false,
-		"path": path,
-		"loaded_ids": [],
-		"missing_ids": [],
-		"errors": []
-	}
+	var report: Dictionary = SAVE_REPORT.make_load(path)
 	if save_slot_id <= 0:
-		report["errors"].append("invalid_save_slot")
+		SAVE_REPORT.add_error(report, "invalid_save_slot")
 		load_finished.emit(save_slot_id, report)
 		return report
 	if not FileAccess.file_exists(path):
-		report["errors"].append("save_file_not_found")
+		SAVE_REPORT.add_error(report, "save_file_not_found")
 		load_finished.emit(save_slot_id, report)
 		return report
 
 	var parse: Dictionary = _read_json(path)
 	if not bool(parse["ok"]):
-		report["errors"].append(parse["error"])
+		SAVE_REPORT.add_error(report, String(parse["error"]))
 		load_finished.emit(save_slot_id, report)
 		return report
 
 	var payload_variant: Variant = parse.get("data", {})
 	if not (payload_variant is Dictionary):
-		report["errors"].append("invalid_payload")
+		SAVE_REPORT.add_error(report, "invalid_payload")
 		load_finished.emit(save_slot_id, report)
 		return report
 	var payload: Dictionary = payload_variant
 
 	var nodes_variant: Variant = payload.get("nodes", [])
 	if not (nodes_variant is Array):
-		report["errors"].append("invalid_nodes_field")
+		SAVE_REPORT.add_error(report, "invalid_nodes_field")
 		load_finished.emit(save_slot_id, report)
 		return report
 	var entries: Array = nodes_variant
 
 	var saveable_map: Dictionary = _build_saveable_map()
-	for entry_variant in entries:
-		if not (entry_variant is Dictionary):
-			report["errors"].append("invalid_node_entry")
-			continue
-		var entry: Dictionary = entry_variant
+	_apply_load_entries(entries, saveable_map, report)
 
-		var save_id: String = String(entry.get("id", ""))
-		if save_id.is_empty():
-			report["errors"].append("missing_node_id")
-			continue
-		if not saveable_map.has(save_id):
-			report["missing_ids"].append(save_id)
-			continue
-
-		var state_variant: Variant = entry.get("state", {})
-		if not (state_variant is Dictionary):
-			report["errors"].append("invalid_state:%s" % save_id)
-			continue
-		var state: Dictionary = state_variant
-
-		var node_variant: Variant = saveable_map[save_id]
-		var node: Node = node_variant as Node
-		if node == null:
-			report["errors"].append("invalid_saveable_node:%s" % save_id)
-			continue
-
-		var apply_result: Variant = node.call("apply_state", state)
-		if apply_result is bool and not apply_result:
-			report["errors"].append("apply_state_rejected:%s" % save_id)
-			continue
-
-		report["loaded_ids"].append(save_id)
-
-	report["ok"] = report["errors"].is_empty()
+	SAVE_REPORT.finalize_ok_when_no_errors(report)
 	load_finished.emit(save_slot_id, report)
 	return report
 
@@ -196,6 +114,87 @@ func list_save_slots() -> Array[int]:
 
 	save_slots.sort()
 	return save_slots
+
+
+func _collect_save_payload_nodes(report: Dictionary) -> Array[Dictionary]:
+	var payload_nodes: Array[Dictionary] = []
+	var seen_ids: Dictionary = {}
+
+	for node_variant in get_tree().get_nodes_in_group(SAVE_GROUP):
+		var node: Node = node_variant as Node
+		var validation: Dictionary = SAVEABLE_PROTOCOL.validate_node(node)
+		if not bool(validation["ok"]):
+			SAVE_REPORT.add_skipped_node(report, {
+				"path": str(node.get_path()) if node != null else "<null>",
+				"reason": validation["reason"]
+			})
+			continue
+
+		var save_id: String = String(node.call("get_save_id"))
+		if save_id.is_empty():
+			SAVE_REPORT.add_skipped_node(report, {
+				"path": str(node.get_path()),
+				"reason": "empty_save_id"
+			})
+			continue
+		if seen_ids.has(save_id):
+			SAVE_REPORT.add_error(report, "duplicate_save_id:%s" % save_id)
+			continue
+
+		var state_variant: Variant = node.call("capture_state")
+		if not (state_variant is Dictionary):
+			SAVE_REPORT.add_skipped_node(report, {
+				"id": save_id,
+				"reason": "capture_state_not_dictionary"
+			})
+			continue
+
+		var state: Dictionary = state_variant
+		seen_ids[save_id] = true
+		var save_type: String = String(node.call("get_save_type")) if node.has_method("get_save_type") else String(node.get_class())
+		payload_nodes.append({
+			"id": save_id,
+			"type": save_type,
+			"state": state
+		})
+		SAVE_REPORT.add_saved_id(report, save_id)
+
+	return payload_nodes
+
+
+func _apply_load_entries(entries: Array, saveable_map: Dictionary, report: Dictionary) -> void:
+	for entry_variant in entries:
+		if not (entry_variant is Dictionary):
+			SAVE_REPORT.add_error(report, "invalid_node_entry")
+			continue
+		var entry: Dictionary = entry_variant
+
+		var save_id: String = String(entry.get("id", ""))
+		if save_id.is_empty():
+			SAVE_REPORT.add_error(report, "missing_node_id")
+			continue
+		if not saveable_map.has(save_id):
+			SAVE_REPORT.add_missing_id(report, save_id)
+			continue
+
+		var state_variant: Variant = entry.get("state", {})
+		if not (state_variant is Dictionary):
+			SAVE_REPORT.add_error(report, "invalid_state:%s" % save_id)
+			continue
+		var state: Dictionary = state_variant
+
+		var node_variant: Variant = saveable_map[save_id]
+		var node: Node = node_variant as Node
+		if node == null:
+			SAVE_REPORT.add_error(report, "invalid_saveable_node:%s" % save_id)
+			continue
+
+		var apply_result: Variant = node.call("apply_state", state)
+		if apply_result is bool and not apply_result:
+			SAVE_REPORT.add_error(report, "apply_state_rejected:%s" % save_id)
+			continue
+
+		SAVE_REPORT.add_loaded_id(report, save_id)
 
 
 func _save_slot_path(save_slot_id: int) -> String:

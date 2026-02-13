@@ -2,6 +2,8 @@
 extends Resource
 class_name ItemContainer
 
+const INVENTORY_RESULT := preload("res://src/inventory/InventoryResult.gd")
+
 @export var item_container_id: StringName = &""
 
 @export var slot_count: int = 36 : set = _set_slot_count, get = _get_slot_count
@@ -50,16 +52,11 @@ func _rebuild_slots_preserve() -> void:
 
 func try_insert(insert_item: ItemData, amount: int) -> int:
 	var outcome := try_insert_result(insert_item, amount)
-	return int(outcome["remainder"])
+	return INVENTORY_RESULT.remainder_of(outcome)
 
 func try_insert_result(insert_item: ItemData, amount: int) -> Dictionary:
 	if insert_item == null or amount <= 0:
-		return {
-			"changed": false,
-			"moved": 0,
-			"remainder": amount,
-			"reason": &"invalid_input"
-		}
+		return INVENTORY_RESULT.make(false, 0, amount, &"invalid_input", {}, false)
 
 	var remaining := amount
 
@@ -83,9 +80,4 @@ func try_insert_result(insert_item: ItemData, amount: int) -> Dictionary:
 	if not did_change:
 		reason = &"no_space"
 
-	return {
-		"changed": did_change,
-		"moved": moved,
-		"remainder": remaining,
-		"reason": reason
-	}
+	return INVENTORY_RESULT.make(did_change, moved, remaining, reason, {}, false)
