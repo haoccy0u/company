@@ -1,0 +1,11 @@
+[gd_scene format=3 uid="uid://bxtvqljqf3re5"]
+
+[ext_resource type="Script" uid="uid://dkbwqudldkksr" path="res://scenes/attribute/charactertest.gd" id="1_od4c8"]
+[ext_resource type="PackedScene" uid="uid://cothha154l1jy" path="res://scenes/attribute/attribute_component.tscn" id="2_w5vt1"]
+
+[node name="charactertest" type="Node2D" unique_id=1780715327]
+script = ExtResource("1_od4c8")
+
+[node name="AttributeComponent" parent="." unique_id=1458007696 instance=ExtResource("2_w5vt1")]
+unique_name_in_owner = true
+script = null

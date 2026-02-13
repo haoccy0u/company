@@ -1,9 +1,9 @@
 [gd_scene format=3 uid="uid://die76oj2duhnp"]
 
 [ext_resource type="Script" uid="uid://ch0dnpcn4ap1k" path="res://scenes/invtest/chest.gd" id="1_6obpf"]
-[ext_resource type="Script" uid="uid://deh2x3u3uxjcr" path="res://scripts/inventory/InventoryComponent.gd" id="1_k8i2o"]
-[ext_resource type="Resource" uid="uid://dbvmahaap6j4h" path="res://resource/chest.tres" id="2_6obpf"]
-[ext_resource type="Resource" uid="uid://dswhof6ow56pb" path="res://resource/item_blue.tres" id="2_vynsf"]
+[ext_resource type="Script" uid="uid://deh2x3u3uxjcr" path="res://src/inventory/InventoryComponent.gd" id="1_k8i2o"]
+[ext_resource type="Resource" uid="uid://dbvmahaap6j4h" path="res://data/chest.tres" id="2_6obpf"]
+[ext_resource type="Resource" uid="uid://dswhof6ow56pb" path="res://data/item_blue.tres" id="2_vynsf"]
 
 [node name="Chest" type="Button" unique_id=1067968191]
 anchors_preset = 8
