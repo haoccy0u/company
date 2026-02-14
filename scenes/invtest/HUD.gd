@@ -1,5 +1,7 @@
-﻿extends CanvasLayer
+extends CanvasLayer
 class_name HUD
+
+const INVENTORY_UI_ID: StringName = &"inventory_panel"
 
 @export var inventory_ui_scene: PackedScene
 @export var test_save_slot: int = 1
@@ -7,14 +9,26 @@ var inventory_ui: InventoryUIPanel
 
 func _ready() -> void:
 	add_to_group("hud")
+	_register_inventory_ui()
 	_build_save_test_panel()
 
+
 func open_inventory(player_inv: InventoryComponent, chest_inv: InventoryComponent) -> void:
+	var ui_manager := _get_ui_manager()
+	if ui_manager != null:
+		ui_manager.call("show_ui", INVENTORY_UI_ID, {
+			"player_inv": player_inv,
+			"chest_inv": chest_inv
+		})
+		return
+
+	# Compatibility fallback when UIManager is unavailable.
 	if inventory_ui == null:
 		inventory_ui = inventory_ui_scene.instantiate() as InventoryUIPanel
 		add_child(inventory_ui)
 
 	inventory_ui.open_with(player_inv, chest_inv)
+
 
 func _unhandled_input(event: InputEvent) -> void:
 	if event is InputEventKey and event.pressed and not event.echo:
@@ -25,6 +39,7 @@ func _unhandled_input(event: InputEvent) -> void:
 			KEY_F9:
 				_on_load_pressed()
 				get_viewport().set_input_as_handled()
+
 
 func _build_save_test_panel() -> void:
 	var panel := PanelContainer.new()
@@ -52,11 +67,13 @@ func _build_save_test_panel() -> void:
 	tips.text = "Flow: Save to save_slot with F5, then load from save_slot with F9."
 	box.add_child(tips)
 
+
 func _add_test_button(parent: VBoxContainer, text: String, callback: Callable) -> void:
 	var button := Button.new()
 	button.text = text
 	button.pressed.connect(callback)
 	parent.add_child(button)
+
 
 func _on_save_pressed() -> void:
 	var manager := _get_save_manager()
@@ -69,6 +86,7 @@ func _on_save_pressed() -> void:
 	else:
 		push_warning("save_slot did not return Dictionary.")
 
+
 func _on_load_pressed() -> void:
 	var manager := _get_save_manager()
 	if manager == null:
@@ -80,8 +98,32 @@ func _on_load_pressed() -> void:
 	else:
 		push_warning("load_slot did not return Dictionary.")
 
+
 func _print_report(action: String, report: Dictionary) -> void:
 	print("[save-test] ", action, " -> ", report)
 
+
+func _register_inventory_ui() -> void:
+	var ui_manager := _get_ui_manager()
+	if ui_manager == null:
+		push_warning("UIManager not found.")
+		return
+	if inventory_ui_scene == null:
+		push_warning("HUD.inventory_ui_scene is null.")
+		return
+
+	ui_manager.call(
+		"register_ui",
+		INVENTORY_UI_ID,
+		inventory_ui_scene,
+		&"hud",
+		&"keep_alive"
+	)
+
+
 func _get_save_manager() -> Node:
 	return get_node_or_null("/root/SaveManager")
+
+
+func _get_ui_manager() -> Node:
+	return get_node_or_null("/root/UIManager")

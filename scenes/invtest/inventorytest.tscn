@@ -4,9 +4,11 @@
 [ext_resource type="PackedScene" uid="uid://die76oj2duhnp" path="res://scenes/invtest/chest.tscn" id="2_63pc5"]
 [ext_resource type="Script" uid="uid://cyrmuwibx52d1" path="res://scenes/invtest/HUD.gd" id="3_8wuhn"]
 [ext_resource type="PackedScene" uid="uid://dwvueefmci38n" path="res://scenes/invtest/InventoryUIPanel.tscn" id="4_ur68j"]
+[ext_resource type="Script" uid="uid://dgblbks4nequ5" path="res://scenes/invtest/inventorytest.gd" id="5_4st74"]
 
-[node name="Inventorytest" type="Node2D" unique_id=76294879]
+[node name="Inventorytest" type="Node2D" unique_id=881324811]
 position = Vector2(893, 487)
+script = ExtResource("5_4st74")
 
 [node name="player" parent="." unique_id=902629533 instance=ExtResource("1_5ldwe")]
 
