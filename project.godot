@@ -19,6 +19,7 @@ config/icon="res://icon.svg"
 
 SaveManager="*res://src/save/SaveManager.gd"
 UIManager="*res://src/ui_framework/UIManager.gd"
+UIBootstrap="*res://src/ui_framework/UIBootstrap.gd"
 
 [display]
 

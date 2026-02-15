@@ -3,31 +3,23 @@ class_name HUD
 
 const INVENTORY_UI_ID: StringName = &"inventory_panel"
 
-@export var inventory_ui_scene: PackedScene
 @export var test_save_slot: int = 1
-var inventory_ui: InventoryUIPanel
 
 func _ready() -> void:
 	add_to_group("hud")
-	_register_inventory_ui()
 	_build_save_test_panel()
 
 
 func open_inventory(player_inv: InventoryComponent, chest_inv: InventoryComponent) -> void:
+	push_warning("HUD.open_inventory is deprecated. Use signal coordinator + UIManager.show_ui.")
 	var ui_manager := _get_ui_manager()
-	if ui_manager != null:
-		ui_manager.call("show_ui", INVENTORY_UI_ID, {
-			"player_inv": player_inv,
-			"chest_inv": chest_inv
-		})
+	if ui_manager == null:
+		push_warning("UIManager not found.")
 		return
-
-	# Compatibility fallback when UIManager is unavailable.
-	if inventory_ui == null:
-		inventory_ui = inventory_ui_scene.instantiate() as InventoryUIPanel
-		add_child(inventory_ui)
-
-	inventory_ui.open_with(player_inv, chest_inv)
+	ui_manager.call("show_ui", INVENTORY_UI_ID, {
+		"player_inv": player_inv,
+		"chest_inv": chest_inv
+	})
 
 
 func _unhandled_input(event: InputEvent) -> void:
@@ -101,24 +93,6 @@ func _on_load_pressed() -> void:
 
 func _print_report(action: String, report: Dictionary) -> void:
 	print("[save-test] ", action, " -> ", report)
-
-
-func _register_inventory_ui() -> void:
-	var ui_manager := _get_ui_manager()
-	if ui_manager == null:
-		push_warning("UIManager not found.")
-		return
-	if inventory_ui_scene == null:
-		push_warning("HUD.inventory_ui_scene is null.")
-		return
-
-	ui_manager.call(
-		"register_ui",
-		INVENTORY_UI_ID,
-		inventory_ui_scene,
-		&"hud",
-		&"keep_alive"
-	)
 
 
 func _get_save_manager() -> Node:

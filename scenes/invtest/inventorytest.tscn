@@ -3,7 +3,6 @@
 [ext_resource type="PackedScene" uid="uid://bbaelilfqyjr1" path="res://scenes/invtest/player.tscn" id="1_5ldwe"]
 [ext_resource type="PackedScene" uid="uid://die76oj2duhnp" path="res://scenes/invtest/chest.tscn" id="2_63pc5"]
 [ext_resource type="Script" uid="uid://cyrmuwibx52d1" path="res://scenes/invtest/HUD.gd" id="3_8wuhn"]
-[ext_resource type="PackedScene" uid="uid://dwvueefmci38n" path="res://scenes/invtest/InventoryUIPanel.tscn" id="4_ur68j"]
 [ext_resource type="Script" uid="uid://dgblbks4nequ5" path="res://scenes/invtest/inventorytest.gd" id="5_4st74"]
 
 [node name="Inventorytest" type="Node2D" unique_id=881324811]
@@ -27,4 +26,3 @@ text = "CHEST,Click to open
 
 [node name="CanvasLayer" type="CanvasLayer" parent="." unique_id=722082253]
 script = ExtResource("3_8wuhn")
-inventory_ui_scene = ExtResource("4_ur68j")
