@@ -1,0 +1,120 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scenes/devtest/TestHub.gd" id="1_hub"]
+
+[node name="TestHub" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1_hub")
+
+[node name="Root" type="VBoxContainer" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 8.0
+offset_top = 8.0
+offset_right = -8.0
+offset_bottom = -8.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_constants/separation = 8
+
+[node name="Toolbar" type="HBoxContainer" parent="Root"]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="TitleLabel" type="Label" parent="Root/Toolbar"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_font_sizes/font_size = 20
+text = "Dev Test Hub"
+
+[node name="DescLabel" type="Label" parent="Root/Toolbar"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Reusable test workspace for dev panels."
+autowrap_mode = 2
+
+[node name="ReloadButton" type="Button" parent="Root/Toolbar"]
+layout_mode = 2
+text = "Reload Panel"
+
+[node name="ClearLogButton" type="Button" parent="Root/Toolbar"]
+layout_mode = 2
+text = "Clear Log"
+
+[node name="Body" type="HSplitContainer" parent="Root"]
+layout_mode = 2
+size_flags_vertical = 3
+split_offset = 220
+
+[node name="LeftPane" type="PanelContainer" parent="Root/Body"]
+layout_mode = 2
+custom_minimum_size = Vector2(220, 0)
+
+[node name="LeftVBox" type="VBoxContainer" parent="Root/Body/LeftPane"]
+layout_mode = 2
+theme_override_constants/separation = 6
+
+[node name="TestsLabel" type="Label" parent="Root/Body/LeftPane/LeftVBox"]
+layout_mode = 2
+text = "Tests"
+
+[node name="TestList" type="ItemList" parent="Root/Body/LeftPane/LeftVBox"]
+layout_mode = 2
+size_flags_vertical = 3
+allow_reselect = true
+
+[node name="RightPane" type="PanelContainer" parent="Root/Body"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+
+[node name="RightVBox" type="VBoxContainer" parent="Root/Body/RightPane"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+theme_override_constants/separation = 8
+
+[node name="PanelFrame" type="PanelContainer" parent="Root/Body/RightPane/RightVBox"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+
+[node name="PanelMargin" type="MarginContainer" parent="Root/Body/RightPane/RightVBox/PanelFrame"]
+layout_mode = 2
+theme_override_constants/margin_left = 8
+theme_override_constants/margin_top = 8
+theme_override_constants/margin_right = 8
+theme_override_constants/margin_bottom = 8
+
+[node name="PanelHost" type="VBoxContainer" parent="Root/Body/RightPane/RightVBox/PanelFrame/PanelMargin"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+custom_minimum_size = Vector2(0, 280)
+
+[node name="LogFrame" type="PanelContainer" parent="Root"]
+layout_mode = 2
+custom_minimum_size = Vector2(0, 180)
+
+[node name="LogVBox" type="VBoxContainer" parent="Root/LogFrame"]
+layout_mode = 2
+theme_override_constants/separation = 6
+
+[node name="LogLabel" type="Label" parent="Root/LogFrame/LogVBox"]
+layout_mode = 2
+text = "Hub Log"
+
+[node name="LogOutput" type="RichTextLabel" parent="Root/LogFrame/LogVBox"]
+layout_mode = 2
+size_flags_vertical = 3
+scroll_following = true
+selection_enabled = true
+bbcode_enabled = false
+fit_content = false
