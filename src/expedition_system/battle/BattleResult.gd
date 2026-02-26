@@ -13,7 +13,8 @@ var player_count: int = 0
 var living_player_count: int = 0
 var enemy_group_id: StringName = &""
 
-var log: Array[Dictionary] = []
+var player_results: Array[Dictionary] = []
+var event_log: Array[Dictionary] = []
 
 
 func to_dict() -> Dictionary:
@@ -28,5 +29,6 @@ func to_dict() -> Dictionary:
 		"player_count": player_count,
 		"living_player_count": living_player_count,
 		"enemy_group_id": enemy_group_id,
-		"log": log.duplicate(true),
+		"player_results": player_results.duplicate(true),
+		"log": event_log.duplicate(true),
 	}

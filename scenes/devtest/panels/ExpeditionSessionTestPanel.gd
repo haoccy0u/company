@@ -8,7 +8,9 @@ const SquadRuntimeFactoryRef = preload("res://src/expedition_system/squad/SquadR
 
 const ExpeditionLocationDefRef = preload("res://src/expedition_system/expedition/ExpeditionLocationDef.gd")
 const ExpeditionSessionRef = preload("res://src/expedition_system/expedition/ExpeditionSession.gd")
+const BattleBuilderRef = preload("res://src/expedition_system/battle/BattleBuilder.gd")
 const BattleSessionRef = preload("res://src/expedition_system/battle/BattleSession.gd")
+const ResultApplierRef = preload("res://src/expedition_system/battle/ResultApplier.gd")
 
 const CTX_SQUAD_RUNTIME: StringName = &"expedition.squad_runtime"
 
@@ -18,18 +20,21 @@ const CTX_SQUAD_RUNTIME: StringName = &"expedition.squad_runtime"
 
 @onready var build_session_button: Button = $ButtonRow/BuildSessionButton
 @onready var advance_button: Button = $ButtonRow/AdvanceButton
+@onready var build_battle_start_button: Button = $ButtonRow/BuildBattleStartButton
 @onready var resolve_combat_button: Button = $ButtonRow/ResolveCombatStubButton
 @onready var complete_event_button: Button = $ButtonRow/CompleteEventButton
 @onready var end_session_button: Button = $ButtonRow/EndSessionButton
 @onready var reset_button: Button = $ButtonRow/ResetButton
 
 @onready var status_label: Label = $StatusLabel
+@onready var squad_state_view: RichTextLabel = $SquadStateFrame/SquadStateVBox/SquadStateView
 @onready var result_view: RichTextLabel = $ResultFrame/ResultView
 
 var _session: ExpeditionSession
 var _location: ExpeditionLocationDef
 var _squad_runtime: SquadRuntime
 var _squad_source: String = "demo"
+var _last_battle_start: BattleStart
 var _last_battle_result: BattleResult
 
 
@@ -41,6 +46,7 @@ func _ready() -> void:
 	_bind_buttons()
 	_reset_ui_defaults()
 	_reset_runtime_state()
+	_refresh_squad_state_view()
 	_set_result_text("Build a session, then use Advance / Complete Event to test Step 2 flow.\n")
 
 
@@ -53,6 +59,8 @@ func _bind_buttons() -> void:
 		build_session_button.pressed.connect(_on_build_session_pressed)
 	if not advance_button.pressed.is_connected(_on_advance_pressed):
 		advance_button.pressed.connect(_on_advance_pressed)
+	if not build_battle_start_button.pressed.is_connected(_on_build_battle_start_pressed):
+		build_battle_start_button.pressed.connect(_on_build_battle_start_pressed)
 	if not resolve_combat_button.pressed.is_connected(_on_resolve_combat_stub_pressed):
 		resolve_combat_button.pressed.connect(_on_resolve_combat_stub_pressed)
 	if not complete_event_button.pressed.is_connected(_on_complete_event_pressed):
@@ -75,6 +83,7 @@ func _reset_runtime_state() -> void:
 	_location = null
 	_squad_runtime = null
 	_squad_source = "demo"
+	_last_battle_start = null
 	_last_battle_result = null
 
 
@@ -97,6 +106,7 @@ func _on_build_session_pressed() -> void:
 	var ok: bool = _session.setup(_location, _squad_runtime)
 	status_label.text = "Session setup: %s" % str(ok)
 	_show_state()
+	_refresh_squad_state_view()
 	log_line("ExpeditionSession.setup -> %s (squad_source=%s)" % [str(ok), _squad_source])
 
 
@@ -116,6 +126,40 @@ func _on_advance_pressed() -> void:
 		log_line("advance() -> %s" % _event_summary(event_obj))
 
 	_show_state()
+	_refresh_squad_state_view()
+
+
+func _on_build_battle_start_pressed() -> void:
+	if _session == null:
+		status_label.text = "Build session first"
+		log_line("Build BattleStart skipped: session is null.")
+		return
+	if _session.current_event == null:
+		status_label.text = "No current event"
+		log_line("Build BattleStart skipped: no current event.")
+		_show_state()
+		return
+	if not (_session.current_event is CombatEventDef):
+		status_label.text = "Current event is not combat"
+		log_line("Build BattleStart skipped: current event is not CombatEventDef.")
+		_show_state()
+		return
+	if _squad_runtime == null:
+		status_label.text = "Squad runtime is null"
+		log_line("Build BattleStart skipped: squad runtime is null.")
+		return
+
+	var combat_event := _session.current_event as CombatEventDef
+	_last_battle_start = BattleBuilderRef.from_combat_event(combat_event, _squad_runtime)
+	if _last_battle_start == null:
+		status_label.text = "Build BattleStart failed"
+		log_line("BattleBuilder.from_combat_event() -> null")
+		return
+
+	status_label.text = "Built BattleStart"
+	log_line("Built BattleStart: %s" % str(_last_battle_start.to_dict()))
+	_show_state()
+	_refresh_squad_state_view()
 
 
 func _on_complete_event_pressed() -> void:
@@ -128,6 +172,7 @@ func _on_complete_event_pressed() -> void:
 	status_label.text = "complete_current_event: %s" % str(ok)
 	log_line("complete_current_event() -> %s" % str(ok))
 	_show_state()
+	_refresh_squad_state_view()
 
 
 func _on_resolve_combat_stub_pressed() -> void:
@@ -152,6 +197,11 @@ func _on_resolve_combat_stub_pressed() -> void:
 
 	var battle_session := BattleSessionRef.new()
 	var combat_event := _session.current_event as CombatEventDef
+	_last_battle_start = BattleBuilderRef.from_combat_event(combat_event, _squad_runtime)
+	if _last_battle_start == null:
+		status_label.text = "Build BattleStart failed"
+		log_line("Resolve combat skipped: BattleBuilder returned null.")
+		return
 	var result := battle_session.run_stub_from_combat_event(combat_event, _squad_runtime)
 	if result == null:
 		status_label.text = "Stub battle failed"
@@ -159,10 +209,21 @@ func _on_resolve_combat_stub_pressed() -> void:
 		return
 
 	_last_battle_result = result
+	var apply_ok: bool = ResultApplierRef.apply_stub_result_to_squad_runtime(result, _squad_runtime)
+	if not apply_ok:
+		status_label.text = "Apply battle result failed"
+		log_line("Resolve combat failed: ResultApplier.apply_stub_result_to_squad_runtime() returned false.")
+		return
+
+	if _squad_source == "hub_context":
+		# Keep shared context synchronized for subsequent panels/tests.
+		ctx_set(CTX_SQUAD_RUNTIME, _squad_runtime.duplicate(true))
+
 	var completed: bool = _session.complete_current_event()
 	status_label.text = "Combat stub resolved (%s), complete=%s" % [String(result.ended_reason), str(completed)]
 	log_line("Resolved combat stub: %s, complete_current_event=%s" % [str(result.to_dict()), str(completed)])
 	_show_state()
+	_refresh_squad_state_view()
 
 
 func _on_end_session_pressed() -> void:
@@ -175,11 +236,13 @@ func _on_end_session_pressed() -> void:
 	status_label.text = "Session ended"
 	log_line("end_session(manual_test_end)")
 	_show_state()
+	_refresh_squad_state_view()
 
 
 func _on_reset_pressed() -> void:
 	_reset_ui_defaults()
 	_reset_runtime_state()
+	_refresh_squad_state_view()
 	_set_result_text("Build a session, then use Advance / Complete Event to test Step 2 flow.\n")
 	log_line("ExpeditionSessionTestPanel reset.")
 
@@ -278,6 +341,7 @@ func _show_state() -> void:
 
 	_append_result("\ncurrent_event: %s\n" % _event_summary(_session.current_event))
 	_append_result("last_event: %s\n" % _event_summary(_session.last_event))
+	_append_result("last_battle_start: %s\n" % _battle_start_summary())
 	_append_result("last_battle_result: %s\n" % _battle_result_summary())
 
 
@@ -321,3 +385,41 @@ func _battle_result_summary() -> String:
 	if _last_battle_result == null:
 		return "null"
 	return str(_last_battle_result.to_dict())
+
+
+func _battle_start_summary() -> String:
+	if _last_battle_start == null:
+		return "null"
+	return str(_last_battle_start.to_dict())
+
+
+func _refresh_squad_state_view() -> void:
+	squad_state_view.clear()
+
+	if _squad_runtime == null:
+		squad_state_view.append_text("squad_runtime: null\n")
+		return
+
+	squad_state_view.append_text("source_squad_id: %s\n" % String(_squad_runtime.source_squad_id))
+	squad_state_view.append_text("source: %s\n" % _squad_source)
+	squad_state_view.append_text("has_living_members: %s\n" % str(_squad_runtime.has_living_members()))
+	squad_state_view.append_text("members: %d\n\n" % _squad_runtime.members.size())
+
+	for i in range(_squad_runtime.members.size()):
+		var m := _squad_runtime.members[i] as MemberRuntime
+		if m == null:
+			squad_state_view.append_text("- [%d] <null>\n" % i)
+			continue
+
+		squad_state_view.append_text("- [%d] %s (%s)\n" % [
+			i,
+			String(m.member_id),
+			String(m.actor_template_id)
+		])
+		squad_state_view.append_text("    HP: %s / %s | alive=%s\n" % [
+			str(m.current_hp),
+			str(m.max_hp),
+			str(m.alive)
+		])
+		squad_state_view.append_text("    equip=[%s]\n" % _join_string_names(m.equipment_ids))
+

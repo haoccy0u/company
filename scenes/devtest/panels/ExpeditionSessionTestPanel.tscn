@@ -80,6 +80,10 @@ text = "Build Session"
 layout_mode = 2
 text = "Advance"
 
+[node name="BuildBattleStartButton" type="Button" parent="ButtonRow"]
+layout_mode = 2
+text = "Build BattleStart"
+
 [node name="ResolveCombatStubButton" type="Button" parent="ButtonRow"]
 layout_mode = 2
 text = "Resolve Combat (Stub)"
@@ -100,6 +104,24 @@ text = "Reset"
 layout_mode = 2
 autowrap_mode = 2
 text = "Ready"
+
+[node name="SquadStateFrame" type="PanelContainer" parent="."]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="SquadStateVBox" type="VBoxContainer" parent="SquadStateFrame"]
+layout_mode = 2
+theme_override_constants/separation = 4
+
+[node name="SquadStateLabel" type="Label" parent="SquadStateFrame/SquadStateVBox"]
+layout_mode = 2
+text = "Squad Runtime State (Live)"
+
+[node name="SquadStateView" type="RichTextLabel" parent="SquadStateFrame/SquadStateVBox"]
+layout_mode = 2
+size_flags_horizontal = 3
+custom_minimum_size = Vector2(0, 120)
+selection_enabled = true
 
 [node name="ResultFrame" type="PanelContainer" parent="."]
 layout_mode = 2
