@@ -32,6 +32,8 @@
 - `BattleSession`（stub）
 - `BattleResult`（stub）
 - `ResultApplier`（最小回写实现，当前用于测试面板）
+- `battle/policy/PostBattleHpPolicy`
+- `battle/policy/CarryOverHpPolicy`
 
 后续会逐步补充：
 

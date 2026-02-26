@@ -13,10 +13,19 @@ const BattleSessionRef = preload("res://src/expedition_system/battle/BattleSessi
 const ResultApplierRef = preload("res://src/expedition_system/battle/ResultApplier.gd")
 
 const CTX_SQUAD_RUNTIME: StringName = &"expedition.squad_runtime"
+const HP_POLICY_IDS: Array[StringName] = [
+	ResultApplierRef.CARRY_OVER_HP_POLICY_ID,
+	ResultApplierRef.RESET_FULL_HP_POLICY_ID,
+]
+const HP_POLICY_LABELS: Array[String] = [
+	"carry_over (inherit battle HP)",
+	"reset_full (restore to max HP)",
+]
 
 @onready var location_id_edit: LineEdit = $ConfigFrame/ConfigVBox/LocationRow/LocationIdEdit
 @onready var enemy_groups_edit: LineEdit = $ConfigFrame/ConfigVBox/EnemyGroupsRow/EnemyGroupsEdit
 @onready var allow_non_combat_stub_check: CheckBox = $ConfigFrame/ConfigVBox/OptionsRow/AllowNonCombatStubCheck
+@onready var hp_policy_option: OptionButton = $ConfigFrame/ConfigVBox/HpPolicyRow/HpPolicyOption
 
 @onready var build_session_button: Button = $ButtonRow/BuildSessionButton
 @onready var advance_button: Button = $ButtonRow/AdvanceButton
@@ -44,6 +53,7 @@ func panel_title() -> String:
 
 func _ready() -> void:
 	_bind_buttons()
+	_populate_hp_policy_options()
 	_reset_ui_defaults()
 	_reset_runtime_state()
 	_refresh_squad_state_view()
@@ -75,6 +85,8 @@ func _reset_ui_defaults() -> void:
 	location_id_edit.text = "forest_outpost"
 	enemy_groups_edit.text = "wolves,bandits"
 	allow_non_combat_stub_check.button_pressed = false
+	if hp_policy_option.item_count > 0:
+		hp_policy_option.select(0)
 	status_label.text = "Ready"
 
 
@@ -156,6 +168,7 @@ func _on_build_battle_start_pressed() -> void:
 		log_line("BattleBuilder.from_combat_event() -> null")
 		return
 
+	_apply_selected_hp_policy_to_battle_start(_last_battle_start)
 	status_label.text = "Built BattleStart"
 	log_line("Built BattleStart: %s" % str(_last_battle_start.to_dict()))
 	_show_state()
@@ -202,6 +215,7 @@ func _on_resolve_combat_stub_pressed() -> void:
 		status_label.text = "Build BattleStart failed"
 		log_line("Resolve combat skipped: BattleBuilder returned null.")
 		return
+	_apply_selected_hp_policy_to_battle_start(_last_battle_start)
 	var result := battle_session.run_stub_from_combat_event(combat_event, _squad_runtime)
 	if result == null:
 		status_label.text = "Stub battle failed"
@@ -209,7 +223,8 @@ func _on_resolve_combat_stub_pressed() -> void:
 		return
 
 	_last_battle_result = result
-	var apply_ok: bool = ResultApplierRef.apply_stub_result_to_squad_runtime(result, _squad_runtime)
+	var hp_policy_id: StringName = _get_current_hp_policy_id()
+	var apply_ok: bool = ResultApplierRef.apply_stub_result_to_squad_runtime(result, _squad_runtime, hp_policy_id)
 	if not apply_ok:
 		status_label.text = "Apply battle result failed"
 		log_line("Resolve combat failed: ResultApplier.apply_stub_result_to_squad_runtime() returned false.")
@@ -221,7 +236,11 @@ func _on_resolve_combat_stub_pressed() -> void:
 
 	var completed: bool = _session.complete_current_event()
 	status_label.text = "Combat stub resolved (%s), complete=%s" % [String(result.ended_reason), str(completed)]
-	log_line("Resolved combat stub: %s, complete_current_event=%s" % [str(result.to_dict()), str(completed)])
+	log_line("Resolved combat stub (hp_policy=%s): %s, complete_current_event=%s" % [
+		String(hp_policy_id),
+		str(result.to_dict()),
+		str(completed)
+	])
 	_show_state()
 	_refresh_squad_state_view()
 
@@ -343,6 +362,7 @@ func _show_state() -> void:
 	_append_result("last_event: %s\n" % _event_summary(_session.last_event))
 	_append_result("last_battle_start: %s\n" % _battle_start_summary())
 	_append_result("last_battle_result: %s\n" % _battle_result_summary())
+	_append_result("selected_hp_policy: %s\n" % _get_selected_hp_policy_label())
 
 
 func _event_summary(event_obj: RefCounted) -> String:
@@ -393,6 +413,16 @@ func _battle_start_summary() -> String:
 	return str(_last_battle_start.to_dict())
 
 
+func _get_current_hp_policy_id() -> StringName:
+	if _last_battle_start == null:
+		return _get_selected_hp_policy_id()
+
+	var policy_value: Variant = _last_battle_start.rules.get("hp_policy_id", ResultApplierRef.DEFAULT_HP_POLICY_ID)
+	if policy_value is StringName:
+		return policy_value
+	return StringName(str(policy_value))
+
+
 func _refresh_squad_state_view() -> void:
 	squad_state_view.clear()
 
@@ -423,3 +453,28 @@ func _refresh_squad_state_view() -> void:
 		])
 		squad_state_view.append_text("    equip=[%s]\n" % _join_string_names(m.equipment_ids))
 
+
+func _populate_hp_policy_options() -> void:
+	hp_policy_option.clear()
+	for i in range(min(HP_POLICY_IDS.size(), HP_POLICY_LABELS.size())):
+		hp_policy_option.add_item(HP_POLICY_LABELS[i], i)
+
+
+func _get_selected_hp_policy_id() -> StringName:
+	var idx := hp_policy_option.selected
+	if idx < 0 or idx >= HP_POLICY_IDS.size():
+		return ResultApplierRef.DEFAULT_HP_POLICY_ID
+	return HP_POLICY_IDS[idx]
+
+
+func _get_selected_hp_policy_label() -> String:
+	var idx := hp_policy_option.selected
+	if idx < 0 or idx >= HP_POLICY_LABELS.size():
+		return String(ResultApplierRef.DEFAULT_HP_POLICY_ID)
+	return HP_POLICY_LABELS[idx]
+
+
+func _apply_selected_hp_policy_to_battle_start(start: BattleStart) -> void:
+	if start == null:
+		return
+	start.rules["hp_policy_id"] = _get_selected_hp_policy_id()

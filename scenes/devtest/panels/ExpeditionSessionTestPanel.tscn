@@ -68,6 +68,18 @@ size_flags_horizontal = 3
 autowrap_mode = 2
 text = "Uses an internal demo squad runtime (2 members) for session setup."
 
+[node name="HpPolicyRow" type="HBoxContainer" parent="ConfigFrame/ConfigVBox"]
+layout_mode = 2
+theme_override_constants/separation = 6
+
+[node name="HpPolicyLabel" type="Label" parent="ConfigFrame/ConfigVBox/HpPolicyRow"]
+layout_mode = 2
+text = "HP Policy"
+
+[node name="HpPolicyOption" type="OptionButton" parent="ConfigFrame/ConfigVBox/HpPolicyRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+
 [node name="ButtonRow" type="HBoxContainer" parent="."]
 layout_mode = 2
 theme_override_constants/separation = 8
