@@ -5,6 +5,13 @@ const ActorResultRef = preload("res://src/expedition_system/battle/ActorResult.g
 const AttributeBuffRef = preload("res://src/attribute_framework/AttributeBuff.gd")
 const AttributeRef = preload("res://src/attribute_framework/Attribute.gd")
 
+signal hp_changed(actor_id: StringName, current_hp: float, max_hp: float)
+signal alive_changed(actor_id: StringName, alive: bool)
+signal cooldown_changed(actor_id: StringName, cooldown_remaining: float, cooldown_total: float)
+
+@onready var attribute_component: AttributeComponent = get_node_or_null("AttributeComponent")
+@onready var inventory_component: InventoryComponent = get_node_or_null("InventoryComponent")
+
 var actor_id: StringName = &""
 var camp: StringName = &""
 var member_id: StringName = &""
@@ -27,28 +34,42 @@ var equipment_ids: Array[StringName] = []
 var tags: Dictionary = {}
 
 
+func _ready() -> void:
+	_sync_components_after_setup()
+
+
 static func from_entry(entry):
 	if entry == null:
 		return null
 
 	var rt = new()
-	rt.actor_id = entry.actor_id
-	rt.camp = entry.camp
-	rt.member_id = entry.member_id
-	rt.actor_template_id = entry.actor_template_id
-	rt.attr_set = entry.base_attr_set.duplicate(true) if entry.base_attr_set != null else null
-	rt.max_hp = maxf(rt.get_attr_value(&"hp_max", float(entry.max_hp)), 0.0)
-	rt.current_hp = clampf(float(entry.hp), 0.0, rt.max_hp)
-	rt._ensure_runtime_hp_attribute(rt.current_hp)
-	rt._sync_runtime_state_from_attributes()
-	rt.cooldown_total = rt._compute_cooldown_total_from_spd()
-	rt.cooldown_remaining = rt.cooldown_total
-	rt.ai_id = entry.ai_id
-	rt.action_ids = entry.action_ids.duplicate()
-	rt.passive_ids = entry.passive_ids.duplicate()
-	rt.equipment_ids = entry.equipment_ids.duplicate()
-	rt.tags = entry.extra.duplicate(true)
+	if not rt.setup_from_entry(entry):
+		return null
 	return rt
+
+
+func setup_from_entry(entry) -> bool:
+	if entry == null:
+		return false
+
+	actor_id = entry.actor_id
+	camp = entry.camp
+	member_id = entry.member_id
+	actor_template_id = entry.actor_template_id
+	attr_set = entry.base_attr_set.duplicate(true) if entry.base_attr_set != null else null
+	max_hp = maxf(get_attr_value(&"hp_max", float(entry.max_hp)), 0.0)
+	current_hp = clampf(float(entry.hp), 0.0, max_hp)
+	_ensure_runtime_hp_attribute(current_hp)
+	_sync_runtime_state_from_attributes()
+	cooldown_total = _compute_cooldown_total_from_spd()
+	cooldown_remaining = cooldown_total
+	ai_id = entry.ai_id
+	action_ids = entry.action_ids.duplicate()
+	passive_ids = entry.passive_ids.duplicate()
+	equipment_ids = entry.equipment_ids.duplicate()
+	tags = entry.extra.duplicate(true)
+	_sync_components_after_setup()
+	return true
 
 
 func is_usable() -> bool:
@@ -61,7 +82,10 @@ func tick(delta: float) -> void:
 		_sync_runtime_state_from_attributes()
 	if not alive:
 		return
+	var before_cd: float = cooldown_remaining
 	cooldown_remaining = maxf(cooldown_remaining - maxf(delta, 0.0), 0.0)
+	if not is_equal_approx(before_cd, cooldown_remaining):
+		cooldown_changed.emit(actor_id, cooldown_remaining, cooldown_total)
 
 
 func is_ready() -> bool:
@@ -71,34 +95,47 @@ func is_ready() -> bool:
 func reset_cooldown() -> void:
 	cooldown_total = _compute_cooldown_total_from_spd()
 	cooldown_remaining = cooldown_total
+	cooldown_changed.emit(actor_id, cooldown_remaining, cooldown_total)
 
 
 func get_attr_value(attr_name: StringName, fallback: float = 0.0) -> float:
+	var attr = find_attribute(attr_name)
+	if attr != null:
+		return float(attr.get_value())
 	if attr_set == null:
 		return fallback
 	var key := String(attr_name)
 	if attr_set.attributes_runtime_dict.has(key):
-		var attr = attr_set.attributes_runtime_dict[key]
-		if attr != null:
-			return float(attr.get_value())
+		var attr2 = attr_set.attributes_runtime_dict[key]
+		if attr2 != null:
+			return float(attr2.get_value())
 	return fallback
 
 
 func get_attr_base_value(attr_name: StringName, fallback: float = 0.0) -> float:
+	var attr = find_attribute(attr_name)
+	if attr != null:
+		return float(attr.get_base_value())
 	if attr_set == null:
 		return fallback
 	var key := String(attr_name)
 	if attr_set.attributes_runtime_dict.has(key):
-		var attr = attr_set.attributes_runtime_dict[key]
-		if attr != null:
-			return float(attr.get_base_value())
+		var attr2 = attr_set.attributes_runtime_dict[key]
+		if attr2 != null:
+			return float(attr2.get_base_value())
 	return fallback
 
 
-func add_multiplicative_buff(attr_name: StringName, multiplier: float, buff_name: StringName, duration_sec: float) -> bool:
+func find_attribute(attr_name: StringName):
+	if attribute_component != null:
+		return attribute_component.find_attribute(String(attr_name))
 	if attr_set == null:
-		return false
-	var attr = attr_set.find_attribute(String(attr_name))
+		return null
+	return attr_set.find_attribute(String(attr_name))
+
+
+func add_multiplicative_buff(attr_name: StringName, multiplier: float, buff_name: StringName, duration_sec: float) -> bool:
+	var attr = find_attribute(attr_name)
 	if attr == null:
 		return false
 	var buff = AttributeBuffRef.mult(multiplier, String(buff_name))
@@ -108,12 +145,18 @@ func add_multiplicative_buff(attr_name: StringName, multiplier: float, buff_name
 
 
 func has_named_buff(attr_name: StringName, buff_name: StringName) -> bool:
-	if attr_set == null:
-		return false
-	var attr = attr_set.find_attribute(String(attr_name))
+	var attr = find_attribute(attr_name)
 	if attr == null:
 		return false
 	return attr.find_buff(String(buff_name)) != null
+
+
+func get_attribute_component() -> AttributeComponent:
+	return attribute_component
+
+
+func get_inventory_component() -> InventoryComponent:
+	return inventory_component
 
 
 func heal(amount: float) -> float:
@@ -214,6 +257,9 @@ func _get_runtime_hp_attr():
 
 
 func _sync_runtime_state_from_attributes() -> void:
+	var prev_max_hp: float = max_hp
+	var prev_hp: float = current_hp
+	var prev_alive: bool = alive
 	max_hp = maxf(get_attr_value(&"hp_max", max_hp), 0.0)
 	var hp_attr = _get_runtime_hp_attr()
 	if hp_attr != null:
@@ -223,3 +269,27 @@ func _sync_runtime_state_from_attributes() -> void:
 	else:
 		current_hp = clampf(current_hp, 0.0, max_hp)
 	alive = current_hp > 0.0
+	if not is_equal_approx(prev_hp, current_hp) or not is_equal_approx(prev_max_hp, max_hp):
+		hp_changed.emit(actor_id, current_hp, max_hp)
+	if prev_alive != alive:
+		alive_changed.emit(actor_id, alive)
+
+
+func _sync_components_after_setup() -> void:
+	if attribute_component != null:
+		# CombatEngine owns battle timing. Disable component auto-process to avoid double ticking.
+		attribute_component.set_physics_process(false)
+		attribute_component.attribute_set = attr_set
+
+	if inventory_component != null:
+		# Battle actors are runtime instances, not save roots.
+		inventory_component.save_enabled = false
+		inventory_component.ensure_initialized()
+		_sync_equipment_to_inventory_placeholder()
+
+
+func _sync_equipment_to_inventory_placeholder() -> void:
+	# TODO: Map `equipment_ids` to real `ItemData` and insert into InventoryComponent.
+	# Current step only guarantees the component exists and is initialized.
+	if inventory_component == null:
+		return

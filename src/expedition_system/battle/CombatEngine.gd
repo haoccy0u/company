@@ -2,6 +2,7 @@ extends RefCounted
 class_name CombatEngine
 
 const ActorRuntimeRef = preload("res://src/expedition_system/battle/ActorRuntime.gd")
+const ActorRuntimeSceneRef = preload("res://src/expedition_system/battle/ActorRuntime.tscn")
 const ActorResultRef = preload("res://src/expedition_system/battle/ActorResult.gd")
 const PassiveTemplateRef = preload("res://src/expedition_system/battle/PassiveTemplate.gd")
 
@@ -31,6 +32,8 @@ var is_finished: bool = false
 var end_reason: StringName = &""
 var winner_camp: StringName = &""
 var passive_defs: Dictionary = {} # passive_id(String) -> PassiveTemplate
+var actor_host_root: Node = null
+var actor_nodes_root: Node = null
 
 
 func setup(start: BattleStart) -> bool:
@@ -40,6 +43,7 @@ func setup(start: BattleStart) -> bool:
 
 	_free_runtime_actors(player_actors)
 	_free_runtime_actors(enemy_actors)
+	_ensure_actor_nodes_root()
 
 	battle_id = start.battle_id
 	source_event_id = start.source_event_id
@@ -335,12 +339,40 @@ func _build_runtime_actors(entries: Array) -> Array:
 		var entry = entries[i]
 		if entry == null:
 			continue
-		var actor = ActorRuntimeRef.from_entry(entry)
+		var actor = _instantiate_runtime_actor(entry)
 		if actor != null:
 			actor.tags["hp_start"] = actor.current_hp
 			actor.tags["spawn_index"] = i
+			_attach_runtime_actor(actor, i)
 			actors.append(actor)
 	return actors
+
+
+func _instantiate_runtime_actor(entry):
+	var actor = null
+	if ActorRuntimeSceneRef != null:
+		actor = ActorRuntimeSceneRef.instantiate()
+
+	if actor == null:
+		actor = ActorRuntimeRef.new()
+
+	if actor == null:
+		return null
+
+	if not actor.has_method("setup_from_entry"):
+		push_error("CombatEngine: ActorRuntime instance missing setup_from_entry()")
+		if actor is Node:
+			actor.free()
+		return null
+
+	var ok: bool = bool(actor.call("setup_from_entry", entry))
+	if not ok:
+		push_warning("CombatEngine: failed to setup ActorRuntime from entry")
+		if actor is Node:
+			actor.free()
+		return null
+
+	return actor
 
 
 func _build_player_results() -> Array:
@@ -514,6 +546,49 @@ func _free_runtime_actors(actors: Array) -> void:
 			continue
 		if actor is Node:
 			if actor.get_parent() != null:
-				actor.queue_free()
-			else:
-				actor.free()
+				actor.get_parent().remove_child(actor)
+			actor.free()
+
+
+func set_actor_host_root(root: Node) -> void:
+	if actor_nodes_root != null and is_instance_valid(actor_nodes_root):
+		if actor_nodes_root.get_parent() != null:
+			actor_nodes_root.get_parent().remove_child(actor_nodes_root)
+		actor_nodes_root.free()
+	actor_host_root = root
+	actor_nodes_root = null
+	var new_root := _ensure_actor_nodes_root()
+	if new_root == null:
+		return
+	for i in range(player_actors.size()):
+		_attach_runtime_actor(player_actors[i], i)
+	for i in range(enemy_actors.size()):
+		_attach_runtime_actor(enemy_actors[i], i)
+
+
+func get_actor_nodes_root() -> Node:
+	return actor_nodes_root if actor_nodes_root != null and is_instance_valid(actor_nodes_root) else null
+
+
+func _ensure_actor_nodes_root() -> Node:
+	if actor_host_root == null or not is_instance_valid(actor_host_root):
+		actor_nodes_root = null
+		return null
+	if actor_nodes_root != null and is_instance_valid(actor_nodes_root):
+		return actor_nodes_root
+
+	var root := Node.new()
+	root.name = "CombatActors"
+	actor_host_root.add_child(root)
+	actor_nodes_root = root
+	return actor_nodes_root
+
+
+func _attach_runtime_actor(actor, index: int) -> void:
+	if actor == null or not (actor is Node):
+		return
+	var root := _ensure_actor_nodes_root()
+	if root == null:
+		return
+	actor.name = "%s_%02d_%s" % [String(actor.camp), index, String(actor.actor_id)]
+	root.add_child(actor)
