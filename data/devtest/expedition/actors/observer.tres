@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="ActorTemplate" format=3]
+
+[ext_resource type="Script" path="res://src/expedition_system/squad/ActorTemplate.gd" id="1_actor"]
+[ext_resource type="Resource" path="res://data/devtest/expedition/actors/attrs/observer_attr_set.tres" id="2_attr_set"]
+
+[resource]
+script = ExtResource("1_actor")
+template_id = &"observer"
+display_name = "观者"
+base_attr_set = ExtResource("2_attr_set")
+action_ids = Array[StringName]([&"basic_attack"])
+passive_ids = Array[StringName]([&"crush_joints"])
+ai_id = &"basic_auto"
+tags = {
+"role": &"debuffer",
+"devtest_passive_ref": "res://data/devtest/expedition/passives/crush_joints.tres"
+}

@@ -1,5 +1,9 @@
 class_name BattleSession extends RefCounted
 
+const ActorResultRef = preload("res://src/expedition_system/battle/ActorResult.gd")
+const BattleBuilderRef = preload("res://src/expedition_system/battle/BattleBuilder.gd")
+const CombatEngineRef = preload("res://src/expedition_system/battle/CombatEngine.gd")
+
 
 func run_stub_from_combat_event(combat_event: CombatEventDef, squad_runtime: SquadRuntime) -> BattleResult:
 	if combat_event == null:
@@ -9,82 +13,84 @@ func run_stub_from_combat_event(combat_event: CombatEventDef, squad_runtime: Squ
 		push_error("BattleSession.run_stub_from_combat_event failed: squad_runtime is null")
 		return null
 
+	var start := BattleBuilderRef.from_combat_event(combat_event, squad_runtime)
+	if start == null:
+		push_error("BattleSession.run_stub_from_combat_event failed: BattleBuilder returned null")
+		return null
+
+	return run_stub_from_battle_start(start)
+
+
+func run_stub_from_battle_start(start: BattleStart) -> BattleResult:
+	if start == null:
+		push_error("BattleSession.run_stub_from_battle_start failed: start is null")
+		return null
+
 	var result := BattleResult.new()
-	result.battle_id = StringName("battle_%s" % String(combat_event.event_id))
-	result.source_event_id = combat_event.event_id
-	result.event_type = combat_event.event_type
-	result.step_index = combat_event.step_index
-	result.enemy_group_id = combat_event.enemy_group_id
+	result.battle_id = start.battle_id
+	result.source_event_id = start.source_event_id
+	result.event_type = &"combat"
+	result.step_index = start.step_index
+	result.enemy_group_id = start.enemy_group_id
 
-	result.player_count = squad_runtime.members.size()
-	result.living_player_count = _count_living_members(squad_runtime)
-	result.success = true
-	result.player_results = _build_stub_player_results(combat_event, squad_runtime)
+	result.player_count = start.player_entries.size()
 
-	var living_after_stub: int = 0
-	for member_result in result.player_results:
-		if bool(member_result.get("alive", false)):
-			living_after_stub += 1
-	result.living_player_count = living_after_stub
+	var engine := CombatEngineRef.new()
+	var run_outcome: Dictionary = engine.run_stub_until_end(start)
+	if run_outcome.is_empty():
+		push_error("BattleSession.run_stub_from_battle_start failed: CombatEngine returned empty outcome")
+		return null
 
-	# Stub rule: if any player is alive, treat the stub battle as victory.
-	if result.living_player_count > 0:
-		result.victory = true
-		result.ended_reason = &"stub_victory"
-	else:
-		result.victory = false
-		result.ended_reason = &"stub_no_living_players"
-
-	result.event_log.append({
-		"type": &"battle_stub",
-		"event_id": combat_event.event_id,
-		"enemy_group_id": combat_event.enemy_group_id,
-		"step_index": combat_event.step_index,
-		"sim_damage": _calc_stub_damage(combat_event),
-		"living_player_count": result.living_player_count,
-		"victory": result.victory,
-	})
+	result.success = bool(run_outcome.get("success", false))
+	result.victory = bool(run_outcome.get("victory", false))
+	result.ended_reason = _as_string_name(run_outcome.get("end_reason", &"stub_failed"))
+	result.living_player_count = int(run_outcome.get("living_player_count", 0))
+	result.player_actor_results = _cast_actor_results_array(run_outcome.get("player_actor_results", []))
+	result.player_results = _actor_results_to_dict_array(result.player_actor_results)
+	result.event_log = _cast_event_log_array(run_outcome.get("event_log", []))
 
 	return result
 
 
-func _count_living_members(squad_runtime: SquadRuntime) -> int:
-	var count: int = 0
-	for member in squad_runtime.members:
-		if member != null and member.is_usable():
-			count += 1
-	return count
-
-
-func _build_stub_player_results(combat_event: CombatEventDef, squad_runtime: SquadRuntime) -> Array[Dictionary]:
-	var results: Array[Dictionary] = []
-	var damage_left: float = _calc_stub_damage(combat_event)
-
-	for member in squad_runtime.members:
-		if member == null:
+func _actor_results_to_dict_array(results: Array) -> Array[Dictionary]:
+	var rows: Array[Dictionary] = []
+	for item in results:
+		if item == null:
 			continue
-
-		var current_hp: float = maxf(member.current_hp, 0.0)
-		var max_hp: float = maxf(member.max_hp, 0.0)
-		var next_hp: float = current_hp
-
-		# Stub behavior: apply deterministic damage to the first living member only.
-		if damage_left > 0.0 and member.is_usable():
-			next_hp = maxf(current_hp - damage_left, 0.0)
-			damage_left = 0.0
-
-		results.append({
-			"member_id": member.member_id,
-			"hp_before": current_hp,
-			"hp_after": next_hp,
-			"max_hp": max_hp,
-			"alive": next_hp > 0.0,
-		})
-
-	return results
+		rows.append(item.to_dict())
+	return rows
 
 
-func _calc_stub_damage(combat_event: CombatEventDef) -> float:
-	# Deterministic small damage so repeated tests show changing squad state.
-	var step_factor: int = max(combat_event.step_index + 1, 1)
-	return float(8 + (step_factor * 3))
+func _cast_actor_results_array(value: Variant) -> Array:
+	var rows: Array = []
+	if value is Array:
+		for item in value:
+			if item == null:
+				continue
+			if item is RefCounted and item.has_method("to_dict"):
+				rows.append(item)
+				continue
+			if item is Dictionary:
+				var row := ActorResultRef.new()
+				row.member_id = _as_string_name(item.get("member_id", &""))
+				row.hp_before = float(item.get("hp_before", 0.0))
+				row.hp_after = float(item.get("hp_after", 0.0))
+				row.max_hp = float(item.get("max_hp", 0.0))
+				row.alive = bool(item.get("alive", false))
+				rows.append(row)
+	return rows
+
+
+func _cast_event_log_array(value: Variant) -> Array[Dictionary]:
+	var rows: Array[Dictionary] = []
+	if value is Array:
+		for item in value:
+			if item is Dictionary:
+				rows.append(item)
+	return rows
+
+
+func _as_string_name(value: Variant) -> StringName:
+	if value is StringName:
+		return value
+	return StringName(str(value))

@@ -2,12 +2,18 @@ extends TestPanelBase
 class_name SquadConfigTestPanel
 
 const ActorTemplateRef = preload("res://src/expedition_system/squad/ActorTemplate.gd")
+const AttributeSetRef = preload("res://src/attribute_framework/AttributeSet.gd")
+const AttributeRef = preload("res://src/attribute_framework/Attribute.gd")
 const SquadConfigRef = preload("res://src/expedition_system/squad/SquadConfig.gd")
 const MemberConfigRef = preload("res://src/expedition_system/squad/MemberConfig.gd")
 const SquadRuntimeFactoryRef = preload("res://src/expedition_system/squad/SquadRuntimeFactory.gd")
 
 const CTX_SQUAD_CONFIG: StringName = &"expedition.squad_config"
 const CTX_SQUAD_RUNTIME: StringName = &"expedition.squad_runtime"
+const DEVTEST_ACTOR_TEMPLATE_PATHS: Array[String] = [
+	"res://data/devtest/expedition/actors/observer.tres",
+	"res://data/devtest/expedition/actors/robot.tres",
+]
 
 const EQUIP_OPTIONS := [
 	{"label": "None", "id": &""},
@@ -113,19 +119,68 @@ func _bind_buttons() -> void:
 
 func _build_demo_templates() -> void:
 	_templates.clear()
-	_templates.append(_make_template(&"warrior", 140.0, [&"slash"], [&"tough_skin"], &"basic_auto"))
-	_templates.append(_make_template(&"medic", 90.0, [&"heal"], [&"triage"], &"basic_auto"))
-	_templates.append(_make_template(&"hunter", 100.0, [&"shoot"], [&"focus"], &"basic_auto"))
+	_templates.append_array(_load_devtest_templates_from_resources())
+	if _templates.is_empty():
+		_templates.append(_make_template(&"observer", "观者", 110.0, 14.0, 6.0, 1.1, [&"basic_attack"], [&"crush_joints"], &"basic_auto"))
+		_templates.append(_make_template(&"robot", "机器人", 160.0, 10.0, 10.0, 0.9, [&"basic_attack"], [&"attack_heal_ally"], &"basic_auto"))
+		_templates.append(_make_template(&"hunter", "猎手", 100.0, 12.0, 4.0, 1.2, [&"shoot"], [&"focus"], &"basic_auto"))
+		log_line("ActorTemplate resources not found, using built-in demo templates.")
+	else:
+		log_line("Loaded ActorTemplate resources from data/devtest/expedition/actors.")
 
 
-func _make_template(template_id: StringName, max_hp: float, action_ids: Array[StringName], passive_ids: Array[StringName], ai_id: StringName) -> ActorTemplate:
+func _load_devtest_templates_from_resources() -> Array[ActorTemplate]:
+	var loaded: Array[ActorTemplate] = []
+	for path in DEVTEST_ACTOR_TEMPLATE_PATHS:
+		var res := load(path)
+		if res is ActorTemplate:
+			loaded.append(res)
+		else:
+			push_warning("SquadConfigTestPanel: failed to load ActorTemplate resource: %s" % path)
+	return loaded
+
+
+func _make_template(
+	template_id: StringName,
+	display_name: String,
+	max_hp: float,
+	atk: float,
+	def: float,
+	spd: float,
+	action_ids: Array[StringName],
+	passive_ids: Array[StringName],
+	ai_id: StringName
+) -> ActorTemplate:
 	var t := ActorTemplateRef.new()
 	t.template_id = template_id
-	t.max_hp = max_hp
+	t.display_name = display_name
+	t.base_attr_set = _make_base_attr_set(max_hp, atk, def, spd)
 	t.action_ids = action_ids
 	t.passive_ids = passive_ids
 	t.ai_id = ai_id
 	return t
+
+
+func _make_base_attr_set(hp_max: float, atk: float, def: float, spd: float) -> AttributeSet:
+	var attr_set := AttributeSetRef.new()
+	attr_set.attributes = [
+		_make_attr("hp_max", hp_max),
+		_make_attr("atk", atk),
+		_make_attr("def", def),
+		_make_attr("spd", spd),
+		_make_attr("dmg_out_mul", 1.0),
+		_make_attr("dmg_in_mul", 1.0),
+		_make_attr("heal_out_mul", 1.0),
+		_make_attr("heal_in_mul", 1.0),
+	]
+	return attr_set
+
+
+func _make_attr(attr_name: String, base_value: float) -> Attribute:
+	var attr := AttributeRef.new()
+	attr.attribute_name = attr_name
+	attr.base_value = base_value
+	return attr
 
 
 func _reset_ui_to_defaults() -> void:
@@ -154,7 +209,10 @@ func _refresh_all_option_boxes() -> void:
 func _fill_template_options(box: OptionButton) -> void:
 	box.clear()
 	for t in _templates:
-		box.add_item(String(t.template_id))
+		var label := String(t.template_id)
+		if not t.display_name.is_empty():
+			label = "%s (%s)" % [t.display_name, String(t.template_id)]
+		box.add_item(label)
 
 
 func _fill_equipment_options(box: OptionButton) -> void:
@@ -328,7 +386,10 @@ func _join_string_names(items: Array[StringName]) -> String:
 func _log_templates() -> void:
 	var names: Array[String] = []
 	for t in _templates:
-		names.append(String(t.template_id))
+		if not t.display_name.is_empty():
+			names.append("%s(%s)" % [t.display_name, String(t.template_id)])
+		else:
+			names.append(String(t.template_id))
 	log_line("Loaded demo ActorTemplate set: [%s]" % ", ".join(names))
 
 

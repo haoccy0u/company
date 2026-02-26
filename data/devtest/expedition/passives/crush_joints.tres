@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="PassiveTemplate" format=3]
+
+[ext_resource type="Script" path="res://src/expedition_system/battle/PassiveTemplate.gd" id="1_passive"]
+
+[resource]
+script = ExtResource("1_passive")
+passive_id = &"crush_joints"
+display_name = "粉碎关节"
+description = "攻击命中时赋予敌人2秒虚弱（伤害变为70%）。对处于虚弱状态的敌人造成额外伤害。"
+trigger_id = &"on_attack_hit"
+effect_tags = Array[StringName]([&"apply_weaken", &"bonus_damage_vs_weakened"])
+params = {
+"weak_duration_sec": 2.0,
+"weak_outgoing_damage_multiplier": 0.7,
+"bonus_damage_ratio": 0.25,
+"bonus_damage_ratio_is_placeholder": true
+}

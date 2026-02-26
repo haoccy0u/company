@@ -2,6 +2,8 @@ extends TestPanelBase
 class_name ExpeditionSessionTestPanel
 
 const ActorTemplateRef = preload("res://src/expedition_system/squad/ActorTemplate.gd")
+const AttributeSetRef = preload("res://src/attribute_framework/AttributeSet.gd")
+const AttributeRef = preload("res://src/attribute_framework/Attribute.gd")
 const MemberConfigRef = preload("res://src/expedition_system/squad/MemberConfig.gd")
 const SquadConfigRef = preload("res://src/expedition_system/squad/SquadConfig.gd")
 const SquadRuntimeFactoryRef = preload("res://src/expedition_system/squad/SquadRuntimeFactory.gd")
@@ -318,11 +320,33 @@ func _build_demo_squad_runtime() -> SquadRuntime:
 func _make_template(template_id: StringName, max_hp: float, action_ids: Array[StringName], passive_ids: Array[StringName], ai_id: StringName) -> ActorTemplate:
 	var t := ActorTemplateRef.new()
 	t.template_id = template_id
-	t.max_hp = max_hp
+	t.base_attr_set = _make_base_attr_set(max_hp)
 	t.action_ids = action_ids
 	t.passive_ids = passive_ids
 	t.ai_id = ai_id
 	return t
+
+
+func _make_base_attr_set(hp_max: float) -> AttributeSet:
+	var attr_set := AttributeSetRef.new()
+	attr_set.attributes = [
+		_make_attr("hp_max", hp_max),
+		_make_attr("atk", 10.0),
+		_make_attr("def", 0.0),
+		_make_attr("spd", 1.0),
+		_make_attr("dmg_out_mul", 1.0),
+		_make_attr("dmg_in_mul", 1.0),
+		_make_attr("heal_out_mul", 1.0),
+		_make_attr("heal_in_mul", 1.0),
+	]
+	return attr_set
+
+
+func _make_attr(attr_name: String, base_value: float) -> Attribute:
+	var attr := AttributeRef.new()
+	attr.attribute_name = attr_name
+	attr.base_value = base_value
+	return attr
 
 
 func _show_state() -> void:

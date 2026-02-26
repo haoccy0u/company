@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="PassiveTemplate" format=3]
+
+[ext_resource type="Script" path="res://src/expedition_system/battle/PassiveTemplate.gd" id="1_passive"]
+
+[resource]
+script = ExtResource("1_passive")
+passive_id = &"attack_heal_ally"
+display_name = "攻击时治疗友方"
+description = "攻击时治疗一个友方单位。治疗目标与治疗量规则后续在 CombatEngine 中实现。"
+trigger_id = &"on_attack_hit"
+effect_tags = Array[StringName]([&"heal_one_ally_on_attack"])
+params = {
+"heal_target_rule": &"lowest_hp_percent_ally",
+"heal_amount_flat": 8.0,
+"heal_amount_flat_is_placeholder": true
+}

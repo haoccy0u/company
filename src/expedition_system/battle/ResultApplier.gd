@@ -21,8 +21,9 @@ static func apply_stub_result_to_squad_runtime(
 		return false
 
 	var hp_policy: RefCounted = _make_hp_policy(hp_policy_id)
+	var rows: Array[Dictionary] = _get_player_result_rows(result)
 
-	for row in result.player_results:
+	for row in rows:
 		if not (row is Dictionary):
 			continue
 
@@ -40,6 +41,24 @@ static func apply_stub_result_to_squad_runtime(
 		member.alive = bool(row.get("alive", member.current_hp > 0.0))
 
 	return true
+
+
+static func _get_player_result_rows(result: BattleResult) -> Array[Dictionary]:
+	var rows: Array[Dictionary] = []
+	if result == null:
+		return rows
+
+	if not result.player_actor_results.is_empty():
+		for actor_result in result.player_actor_results:
+			if actor_result == null:
+				continue
+			rows.append(actor_result.to_dict())
+		return rows
+
+	for row in result.player_results:
+		if row is Dictionary:
+			rows.append(row)
+	return rows
 
 
 static func _make_hp_policy(hp_policy_id: StringName) -> RefCounted:
