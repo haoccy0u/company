@@ -1,8 +1,9 @@
-extends RefCounted
+extends Node
 class_name ActorRuntime
 
 const ActorResultRef = preload("res://src/expedition_system/battle/ActorResult.gd")
 const AttributeBuffRef = preload("res://src/attribute_framework/AttributeBuff.gd")
+const AttributeRef = preload("res://src/attribute_framework/Attribute.gd")
 
 var actor_id: StringName = &""
 var camp: StringName = &""
@@ -38,7 +39,8 @@ static func from_entry(entry):
 	rt.attr_set = entry.base_attr_set.duplicate(true) if entry.base_attr_set != null else null
 	rt.max_hp = maxf(rt.get_attr_value(&"hp_max", float(entry.max_hp)), 0.0)
 	rt.current_hp = clampf(float(entry.hp), 0.0, rt.max_hp)
-	rt.alive = rt.current_hp > 0.0
+	rt._ensure_runtime_hp_attribute(rt.current_hp)
+	rt._sync_runtime_state_from_attributes()
 	rt.cooldown_total = rt._compute_cooldown_total_from_spd()
 	rt.cooldown_remaining = rt.cooldown_total
 	rt.ai_id = entry.ai_id
@@ -56,6 +58,7 @@ func is_usable() -> bool:
 func tick(delta: float) -> void:
 	if attr_set != null:
 		attr_set.run_process(delta)
+		_sync_runtime_state_from_attributes()
 	if not alive:
 		return
 	cooldown_remaining = maxf(cooldown_remaining - maxf(delta, 0.0), 0.0)
@@ -117,8 +120,15 @@ func heal(amount: float) -> float:
 	if amount <= 0.0 or not alive:
 		return 0.0
 	var before_hp: float = current_hp
-	current_hp = clampf(current_hp + amount, 0.0, max_hp)
-	alive = current_hp > 0.0
+	var hp_attr = _get_runtime_hp_attr()
+	if hp_attr != null:
+		hp_attr.add(amount)
+		var clamped_hp: float = clampf(hp_attr.get_value(), 0.0, maxf(get_attr_value(&"hp_max", max_hp), 0.0))
+		hp_attr.set_value(clamped_hp)
+		_sync_runtime_state_from_attributes()
+	else:
+		current_hp = clampf(current_hp + amount, 0.0, max_hp)
+		alive = current_hp > 0.0
 	return current_hp - before_hp
 
 
@@ -126,8 +136,15 @@ func take_damage(amount: float) -> float:
 	if amount <= 0.0 or not alive:
 		return 0.0
 	var before_hp: float = current_hp
-	current_hp = maxf(current_hp - amount, 0.0)
-	alive = current_hp > 0.0
+	var hp_attr = _get_runtime_hp_attr()
+	if hp_attr != null:
+		hp_attr.sub(amount)
+		var clamped_hp: float = clampf(hp_attr.get_value(), 0.0, maxf(get_attr_value(&"hp_max", max_hp), 0.0))
+		hp_attr.set_value(clamped_hp)
+		_sync_runtime_state_from_attributes()
+	else:
+		current_hp = maxf(current_hp - amount, 0.0)
+		alive = current_hp > 0.0
 	return before_hp - current_hp
 
 
@@ -163,3 +180,46 @@ func to_dict() -> Dictionary:
 func _compute_cooldown_total_from_spd() -> float:
 	var spd: float = maxf(get_attr_value(&"spd", 1.0), 0.1)
 	return maxf(1.0 / spd, 0.1)
+
+
+func _ensure_runtime_hp_attribute(initial_hp: float) -> void:
+	if attr_set == null:
+		return
+
+	var has_hp_attr: bool = attr_set.attributes_runtime_dict.has("hp")
+	if has_hp_attr:
+		var hp_attr = attr_set.attributes_runtime_dict["hp"]
+		if hp_attr != null:
+			hp_attr.set_value(initial_hp)
+		return
+
+	var new_attr := AttributeRef.new()
+	new_attr.attribute_name = "hp"
+	new_attr.base_value = initial_hp
+
+	var new_attributes: Array[Attribute] = []
+	for attr in attr_set.attributes:
+		if attr != null:
+			new_attributes.append(attr)
+	new_attributes.append(new_attr)
+	attr_set.attributes = new_attributes
+
+
+func _get_runtime_hp_attr():
+	if attr_set == null:
+		return null
+	if not attr_set.attributes_runtime_dict.has("hp"):
+		return null
+	return attr_set.attributes_runtime_dict["hp"]
+
+
+func _sync_runtime_state_from_attributes() -> void:
+	max_hp = maxf(get_attr_value(&"hp_max", max_hp), 0.0)
+	var hp_attr = _get_runtime_hp_attr()
+	if hp_attr != null:
+		current_hp = clampf(float(hp_attr.get_value()), 0.0, max_hp)
+		if not is_equal_approx(float(hp_attr.get_value()), current_hp):
+			hp_attr.set_value(current_hp)
+	else:
+		current_hp = clampf(current_hp, 0.0, max_hp)
+	alive = current_hp > 0.0
