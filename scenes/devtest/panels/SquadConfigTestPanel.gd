@@ -6,7 +6,9 @@ const SquadConfigRef = preload("res://src/expedition_system/squad/SquadConfig.gd
 const MemberConfigRef = preload("res://src/expedition_system/squad/MemberConfig.gd")
 const SquadRuntimeFactoryRef = preload("res://src/expedition_system/squad/SquadRuntimeFactory.gd")
 
-const SLOT_COUNT := 3
+const CTX_SQUAD_CONFIG: StringName = &"expedition.squad_config"
+const CTX_SQUAD_RUNTIME: StringName = &"expedition.squad_runtime"
+
 const EQUIP_OPTIONS := [
 	{"label": "None", "id": &""},
 	{"label": "Iron Sword", "id": &"iron_sword"},
@@ -14,12 +16,33 @@ const EQUIP_OPTIONS := [
 	{"label": "Hunter Bow", "id": &"hunter_bow"},
 ]
 
+@onready var squad_id_edit: LineEdit = $HeaderRow/SquadIdEdit
+@onready var build_config_button: Button = $ButtonRow/BuildConfigButton
+@onready var build_runtime_button: Button = $ButtonRow/BuildRuntimeButton
+@onready var reset_button: Button = $ButtonRow/ResetButton
+@onready var status_label: Label = $StatusLabel
+@onready var result_view: RichTextLabel = $ResultFrame/ResultView
+
+@onready var slot1_enabled: CheckBox = $RowsFrame/RowsVBox/Slot1Row/Slot1Enabled
+@onready var slot1_member_id: LineEdit = $RowsFrame/RowsVBox/Slot1Row/Slot1MemberIdEdit
+@onready var slot1_template: OptionButton = $RowsFrame/RowsVBox/Slot1Row/Slot1TemplateBox
+@onready var slot1_equip: OptionButton = $RowsFrame/RowsVBox/Slot1Row/Slot1EquipBox
+@onready var slot1_init_hp: SpinBox = $RowsFrame/RowsVBox/Slot1Row/Slot1InitHpSpin
+
+@onready var slot2_enabled: CheckBox = $RowsFrame/RowsVBox/Slot2Row/Slot2Enabled
+@onready var slot2_member_id: LineEdit = $RowsFrame/RowsVBox/Slot2Row/Slot2MemberIdEdit
+@onready var slot2_template: OptionButton = $RowsFrame/RowsVBox/Slot2Row/Slot2TemplateBox
+@onready var slot2_equip: OptionButton = $RowsFrame/RowsVBox/Slot2Row/Slot2EquipBox
+@onready var slot2_init_hp: SpinBox = $RowsFrame/RowsVBox/Slot2Row/Slot2InitHpSpin
+
+@onready var slot3_enabled: CheckBox = $RowsFrame/RowsVBox/Slot3Row/Slot3Enabled
+@onready var slot3_member_id: LineEdit = $RowsFrame/RowsVBox/Slot3Row/Slot3MemberIdEdit
+@onready var slot3_template: OptionButton = $RowsFrame/RowsVBox/Slot3Row/Slot3TemplateBox
+@onready var slot3_equip: OptionButton = $RowsFrame/RowsVBox/Slot3Row/Slot3EquipBox
+@onready var slot3_init_hp: SpinBox = $RowsFrame/RowsVBox/Slot3Row/Slot3InitHpSpin
+
 var _templates: Array[ActorTemplate] = []
 var _rows: Array[Dictionary] = []
-
-var _squad_id_edit: LineEdit
-var _result_view: RichTextLabel
-var _status_label: Label
 var _last_config: SquadConfig
 
 
@@ -28,16 +51,64 @@ func panel_title() -> String:
 
 
 func _ready() -> void:
-	size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	size_flags_vertical = Control.SIZE_EXPAND_FILL
-	add_theme_constant_override("separation", 8)
+	_cache_rows()
+	_bind_buttons()
 	_build_demo_templates()
-	_build_ui()
+	_reset_ui_to_defaults()
+	_refresh_all_option_boxes()
+	_clear_result("Result output will appear here.\n")
 
 
 func on_panel_activated() -> void:
 	_log_templates()
 	log_line("SquadConfigTestPanel ready. Configure slots and build SquadRuntime.")
+
+
+func _cache_rows() -> void:
+	_rows = [
+		{
+			"enabled": slot1_enabled,
+			"member_id": slot1_member_id,
+			"template": slot1_template,
+			"equip": slot1_equip,
+			"init_hp": slot1_init_hp,
+			"default_enabled": true,
+			"default_member_id": "m_1",
+			"default_template_idx": 0,
+			"default_equip_idx": 0,
+		},
+		{
+			"enabled": slot2_enabled,
+			"member_id": slot2_member_id,
+			"template": slot2_template,
+			"equip": slot2_equip,
+			"init_hp": slot2_init_hp,
+			"default_enabled": true,
+			"default_member_id": "m_2",
+			"default_template_idx": 1,
+			"default_equip_idx": 0,
+		},
+		{
+			"enabled": slot3_enabled,
+			"member_id": slot3_member_id,
+			"template": slot3_template,
+			"equip": slot3_equip,
+			"init_hp": slot3_init_hp,
+			"default_enabled": false,
+			"default_member_id": "m_3",
+			"default_template_idx": 2,
+			"default_equip_idx": 0,
+		},
+	]
+
+
+func _bind_buttons() -> void:
+	if not build_config_button.pressed.is_connected(_on_build_config_pressed):
+		build_config_button.pressed.connect(_on_build_config_pressed)
+	if not build_runtime_button.pressed.is_connected(_on_build_runtime_pressed):
+		build_runtime_button.pressed.connect(_on_build_runtime_pressed)
+	if not reset_button.pressed.is_connected(_on_reset_pressed):
+		reset_button.pressed.connect(_on_reset_pressed)
 
 
 func _build_demo_templates() -> void:
@@ -57,120 +128,27 @@ func _make_template(template_id: StringName, max_hp: float, action_ids: Array[St
 	return t
 
 
-func _build_ui() -> void:
-	for child in get_children():
-		child.queue_free()
-	_rows.clear()
+func _reset_ui_to_defaults() -> void:
+	_last_config = null
+	squad_id_edit.text = "test_squad"
+	status_label.text = "Ready"
 
-	var title := Label.new()
-	title.text = "Squad Configuration (MVP)"
-	title.add_theme_font_size_override("font_size", 18)
-	add_child(title)
-
-	var tips := Label.new()
-	tips.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	tips.text = "Player config only selects role(template) and equipment. Actions/passives/AI are loaded from ActorTemplate."
-	add_child(tips)
-
-	var header_row := HBoxContainer.new()
-	header_row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	add_child(header_row)
-
-	var squad_label := Label.new()
-	squad_label.text = "Squad ID"
-	header_row.add_child(squad_label)
-
-	_squad_id_edit = LineEdit.new()
-	_squad_id_edit.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	_squad_id_edit.placeholder_text = "test_squad"
-	_squad_id_edit.text = "test_squad"
-	header_row.add_child(_squad_id_edit)
-
-	var rows_frame := PanelContainer.new()
-	rows_frame.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	add_child(rows_frame)
-
-	var rows_vbox := VBoxContainer.new()
-	rows_vbox.add_theme_constant_override("separation", 6)
-	rows_frame.add_child(rows_vbox)
-
-	for slot_index in SLOT_COUNT:
-		var row := _create_slot_row(slot_index)
-		_rows.append(row)
-		rows_vbox.add_child(row.get("root"))
-
-	var button_row := HBoxContainer.new()
-	button_row.add_theme_constant_override("separation", 8)
-	add_child(button_row)
-
-	_add_button(button_row, "Build Config", _on_build_config_pressed)
-	_add_button(button_row, "Build Runtime", _on_build_runtime_pressed)
-	_add_button(button_row, "Reset Demo", _on_reset_pressed)
-
-	_status_label = Label.new()
-	_status_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	_status_label.text = "Ready"
-	add_child(_status_label)
-
-	var result_frame := PanelContainer.new()
-	result_frame.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	result_frame.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	add_child(result_frame)
-
-	_result_view = RichTextLabel.new()
-	_result_view.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	_result_view.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	_result_view.custom_minimum_size = Vector2(0, 220)
-	_result_view.selection_enabled = true
-	result_frame.add_child(_result_view)
-
-	_result_view.clear()
-	_result_view.append_text("Result output will appear here.\n")
+	for row in _rows:
+		(row["enabled"] as CheckBox).button_pressed = bool(row["default_enabled"])
+		(row["member_id"] as LineEdit).text = str(row["default_member_id"])
+		(row["init_hp"] as SpinBox).value = -1.0
 
 
-func _create_slot_row(slot_index: int) -> Dictionary:
-	var row: Dictionary = {}
-	var root := HBoxContainer.new()
-	root.add_theme_constant_override("separation", 6)
-	root.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+func _refresh_all_option_boxes() -> void:
+	for row in _rows:
+		_fill_template_options(row["template"] as OptionButton)
+		_fill_equipment_options(row["equip"] as OptionButton)
 
-	var enabled := CheckBox.new()
-	enabled.text = "Slot %d" % (slot_index + 1)
-	enabled.button_pressed = slot_index < 2
-	root.add_child(enabled)
-
-	var member_id_edit := LineEdit.new()
-	member_id_edit.custom_minimum_size = Vector2(110, 0)
-	member_id_edit.placeholder_text = "member_id"
-	member_id_edit.text = "m_%d" % (slot_index + 1)
-	root.add_child(member_id_edit)
-
-	var template_box := OptionButton.new()
-	template_box.custom_minimum_size = Vector2(130, 0)
-	_fill_template_options(template_box)
-	root.add_child(template_box)
-
-	var equip_box := OptionButton.new()
-	equip_box.custom_minimum_size = Vector2(130, 0)
-	_fill_equipment_options(equip_box)
-	root.add_child(equip_box)
-
-	var init_hp := SpinBox.new()
-	init_hp.custom_minimum_size = Vector2(90, 0)
-	init_hp.min_value = -1.0
-	init_hp.max_value = 9999.0
-	init_hp.step = 1.0
-	init_hp.value = -1.0
-	init_hp.prefix = "HP "
-	root.add_child(init_hp)
-
-	row["root"] = root
-	row["enabled"] = enabled
-	row["member_id"] = member_id_edit
-	row["template"] = template_box
-	row["equip"] = equip_box
-	row["init_hp"] = init_hp
-	return row
+	for row in _rows:
+		var template_box := row["template"] as OptionButton
+		var equip_box := row["equip"] as OptionButton
+		template_box.select(_clamp_index(int(row["default_template_idx"]), template_box.get_item_count()))
+		equip_box.select(_clamp_index(int(row["default_equip_idx"]), equip_box.get_item_count()))
 
 
 func _fill_template_options(box: OptionButton) -> void:
@@ -185,11 +163,10 @@ func _fill_equipment_options(box: OptionButton) -> void:
 		box.add_item(str(option["label"]))
 
 
-func _add_button(parent: HBoxContainer, text: String, callback: Callable) -> void:
-	var button := Button.new()
-	button.text = text
-	button.pressed.connect(callback)
-	parent.add_child(button)
+func _clamp_index(idx: int, count: int) -> int:
+	if count <= 0:
+		return -1
+	return clampi(idx, 0, count - 1)
 
 
 func _on_build_config_pressed() -> void:
@@ -198,8 +175,9 @@ func _on_build_config_pressed() -> void:
 	if config == null:
 		return
 
-	_status_label.text = "Built SquadConfig with %d members" % config.members.size()
+	status_label.text = "Built SquadConfig with %d members" % config.members.size()
 	_show_config(config)
+	_publish_config_to_context(config)
 	log_line("Built SquadConfig: %s (%d members)" % [String(config.squad_id), config.members.size()])
 
 
@@ -213,27 +191,31 @@ func _on_build_runtime_pressed() -> void:
 
 	var runtime = SquadRuntimeFactoryRef.from_config(config)
 	if runtime == null:
-		_status_label.text = "Build SquadRuntime failed"
+		status_label.text = "Build SquadRuntime failed"
+		ctx_erase(CTX_SQUAD_RUNTIME)
 		_append_result("Build SquadRuntime failed.\n")
 		log_line("Build SquadRuntime failed.")
 		return
 
-	_status_label.text = "Built SquadRuntime with %d members" % runtime.members.size()
+	status_label.text = "Built SquadRuntime with %d members" % runtime.members.size()
 	_show_runtime(config, runtime)
+	_publish_runtime_to_context(runtime)
 	log_line("Built SquadRuntime: %s (%d members)" % [String(runtime.source_squad_id), runtime.members.size()])
 
 
 func _on_reset_pressed() -> void:
 	_build_demo_templates()
-	_build_ui()
-	_last_config = null
-	_status_label.text = "Reset demo UI"
+	_reset_ui_to_defaults()
+	_refresh_all_option_boxes()
+	ctx_erase(CTX_SQUAD_CONFIG)
+	ctx_erase(CTX_SQUAD_RUNTIME)
+	_clear_result("Result output will appear here.\n")
 	log_line("SquadConfigTestPanel reset.")
 
 
 func _build_config_from_ui() -> SquadConfig:
 	var squad := SquadConfigRef.new()
-	var squad_text := _squad_id_edit.text.strip_edges()
+	var squad_text := squad_id_edit.text.strip_edges()
 	squad.squad_id = StringName(squad_text if not squad_text.is_empty() else "test_squad")
 	squad.members = []
 
@@ -243,7 +225,7 @@ func _build_config_from_ui() -> SquadConfig:
 		if not enabled.button_pressed:
 			continue
 
-		var template: ActorTemplate = _get_selected_template(row["template"])
+		var template: ActorTemplate = _get_selected_template(row["template"] as OptionButton)
 		if template == null:
 			log_line("Slot %d skipped: no template selected." % (i + 1))
 			continue
@@ -253,14 +235,13 @@ func _build_config_from_ui() -> SquadConfig:
 		member.member_id = StringName(member_id_text if not member_id_text.is_empty() else "m_%d" % (i + 1))
 		member.actor_template = template
 		member.actor_template_id = template.template_id
-		member.equipment_ids = _get_selected_equipment_ids(row["equip"])
+		member.equipment_ids = _get_selected_equipment_ids(row["equip"] as OptionButton)
 		member.init_hp = float((row["init_hp"] as SpinBox).value)
 		squad.members.append(member)
 
 	if squad.members.is_empty():
-		_status_label.text = "No enabled members."
-		_result_view.clear()
-		_result_view.append_text("No enabled members. Enable at least one slot.\n")
+		status_label.text = "No enabled members."
+		_clear_result("No enabled members. Enable at least one slot.\n")
 		log_line("Build SquadConfig skipped: no enabled members.")
 		return null
 
@@ -286,13 +267,13 @@ func _get_selected_equipment_ids(box: OptionButton) -> Array[StringName]:
 
 
 func _show_config(config: SquadConfig) -> void:
-	_result_view.clear()
+	_clear_result("")
 	_append_result("=== SquadConfig ===\n")
 	_append_result("squad_id: %s\n" % String(config.squad_id))
 	_append_result("members: %d\n" % config.members.size())
 
 	for i in range(config.members.size()):
-		var m = config.members[i] as MemberConfig
+		var m := config.members[i] as MemberConfig
 		var equip_text := _join_string_names(m.equipment_ids)
 		_append_result("- [%d] member_id=%s template=%s equip=[%s] init_hp=%s\n" % [
 			i,
@@ -303,14 +284,14 @@ func _show_config(config: SquadConfig) -> void:
 		])
 
 
-func _show_runtime(config: SquadConfig, runtime) -> void:
+func _show_runtime(config: SquadConfig, runtime: SquadRuntime) -> void:
 	_show_config(config)
 	_append_result("\n=== SquadRuntime ===\n")
 	_append_result("source_squad_id: %s\n" % String(runtime.source_squad_id))
 	_append_result("members: %d\n" % runtime.members.size())
 
 	for i in range(runtime.members.size()):
-		var m = runtime.members[i]
+		var m := runtime.members[i] as MemberRuntime
 		_append_result("- [%d] member_id=%s template=%s hp=%s/%s alive=%s\n" % [
 			i,
 			String(m.member_id),
@@ -327,8 +308,14 @@ func _show_runtime(config: SquadConfig, runtime) -> void:
 		])
 
 
+func _clear_result(initial_text: String) -> void:
+	result_view.clear()
+	if not initial_text.is_empty():
+		result_view.append_text(initial_text)
+
+
 func _append_result(text: String) -> void:
-	_result_view.append_text(text)
+	result_view.append_text(text)
 
 
 func _join_string_names(items: Array[StringName]) -> String:
@@ -343,3 +330,20 @@ func _log_templates() -> void:
 	for t in _templates:
 		names.append(String(t.template_id))
 	log_line("Loaded demo ActorTemplate set: [%s]" % ", ".join(names))
+
+
+func _publish_config_to_context(config: SquadConfig) -> void:
+	if config == null:
+		ctx_erase(CTX_SQUAD_CONFIG)
+		return
+	ctx_set(CTX_SQUAD_CONFIG, config.duplicate(true))
+	ctx_erase(CTX_SQUAD_RUNTIME)
+	log_line("Published SquadConfig to TestHub context.")
+
+
+func _publish_runtime_to_context(runtime: SquadRuntime) -> void:
+	if runtime == null:
+		ctx_erase(CTX_SQUAD_RUNTIME)
+		return
+	ctx_set(CTX_SQUAD_RUNTIME, runtime.duplicate(true))
+	log_line("Published SquadRuntime to TestHub context.")

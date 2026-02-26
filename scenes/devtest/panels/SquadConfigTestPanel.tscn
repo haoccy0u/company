@@ -3,7 +3,172 @@
 [ext_resource type="Script" path="res://scenes/devtest/panels/SquadConfigTestPanel.gd" id="1_panel"]
 
 [node name="SquadConfigTestPanel" type="VBoxContainer"]
-theme_override_constants/separation = 8
 size_flags_horizontal = 3
 size_flags_vertical = 3
+theme_override_constants/separation = 8
 script = ExtResource("1_panel")
+
+[node name="TitleLabel" type="Label" parent="."]
+layout_mode = 2
+text = "Squad Configuration (MVP)"
+theme_override_font_sizes/font_size = 18
+
+[node name="TipsLabel" type="Label" parent="."]
+layout_mode = 2
+autowrap_mode = 2
+text = "Player config only selects role(template) and equipment. Actions/passives/AI are loaded from ActorTemplate."
+
+[node name="HeaderRow" type="HBoxContainer" parent="."]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 6
+
+[node name="SquadIdLabel" type="Label" parent="HeaderRow"]
+layout_mode = 2
+text = "Squad ID"
+
+[node name="SquadIdEdit" type="LineEdit" parent="HeaderRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+placeholder_text = "test_squad"
+text = "test_squad"
+
+[node name="RowsFrame" type="PanelContainer" parent="."]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="RowsVBox" type="VBoxContainer" parent="RowsFrame"]
+layout_mode = 2
+theme_override_constants/separation = 6
+
+[node name="Slot1Row" type="HBoxContainer" parent="RowsFrame/RowsVBox"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 6
+
+[node name="Slot1Enabled" type="CheckBox" parent="RowsFrame/RowsVBox/Slot1Row"]
+layout_mode = 2
+button_pressed = true
+text = "Slot 1"
+
+[node name="Slot1MemberIdEdit" type="LineEdit" parent="RowsFrame/RowsVBox/Slot1Row"]
+layout_mode = 2
+custom_minimum_size = Vector2(110, 0)
+placeholder_text = "member_id"
+text = "m_1"
+
+[node name="Slot1TemplateBox" type="OptionButton" parent="RowsFrame/RowsVBox/Slot1Row"]
+layout_mode = 2
+custom_minimum_size = Vector2(130, 0)
+
+[node name="Slot1EquipBox" type="OptionButton" parent="RowsFrame/RowsVBox/Slot1Row"]
+layout_mode = 2
+custom_minimum_size = Vector2(130, 0)
+
+[node name="Slot1InitHpSpin" type="SpinBox" parent="RowsFrame/RowsVBox/Slot1Row"]
+layout_mode = 2
+custom_minimum_size = Vector2(90, 0)
+min_value = -1.0
+max_value = 9999.0
+step = 1.0
+value = -1.0
+prefix = "HP "
+
+[node name="Slot2Row" type="HBoxContainer" parent="RowsFrame/RowsVBox"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 6
+
+[node name="Slot2Enabled" type="CheckBox" parent="RowsFrame/RowsVBox/Slot2Row"]
+layout_mode = 2
+button_pressed = true
+text = "Slot 2"
+
+[node name="Slot2MemberIdEdit" type="LineEdit" parent="RowsFrame/RowsVBox/Slot2Row"]
+layout_mode = 2
+custom_minimum_size = Vector2(110, 0)
+placeholder_text = "member_id"
+text = "m_2"
+
+[node name="Slot2TemplateBox" type="OptionButton" parent="RowsFrame/RowsVBox/Slot2Row"]
+layout_mode = 2
+custom_minimum_size = Vector2(130, 0)
+
+[node name="Slot2EquipBox" type="OptionButton" parent="RowsFrame/RowsVBox/Slot2Row"]
+layout_mode = 2
+custom_minimum_size = Vector2(130, 0)
+
+[node name="Slot2InitHpSpin" type="SpinBox" parent="RowsFrame/RowsVBox/Slot2Row"]
+layout_mode = 2
+custom_minimum_size = Vector2(90, 0)
+min_value = -1.0
+max_value = 9999.0
+step = 1.0
+value = -1.0
+prefix = "HP "
+
+[node name="Slot3Row" type="HBoxContainer" parent="RowsFrame/RowsVBox"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 6
+
+[node name="Slot3Enabled" type="CheckBox" parent="RowsFrame/RowsVBox/Slot3Row"]
+layout_mode = 2
+button_pressed = false
+text = "Slot 3"
+
+[node name="Slot3MemberIdEdit" type="LineEdit" parent="RowsFrame/RowsVBox/Slot3Row"]
+layout_mode = 2
+custom_minimum_size = Vector2(110, 0)
+placeholder_text = "member_id"
+text = "m_3"
+
+[node name="Slot3TemplateBox" type="OptionButton" parent="RowsFrame/RowsVBox/Slot3Row"]
+layout_mode = 2
+custom_minimum_size = Vector2(130, 0)
+
+[node name="Slot3EquipBox" type="OptionButton" parent="RowsFrame/RowsVBox/Slot3Row"]
+layout_mode = 2
+custom_minimum_size = Vector2(130, 0)
+
+[node name="Slot3InitHpSpin" type="SpinBox" parent="RowsFrame/RowsVBox/Slot3Row"]
+layout_mode = 2
+custom_minimum_size = Vector2(90, 0)
+min_value = -1.0
+max_value = 9999.0
+step = 1.0
+value = -1.0
+prefix = "HP "
+
+[node name="ButtonRow" type="HBoxContainer" parent="."]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="BuildConfigButton" type="Button" parent="ButtonRow"]
+layout_mode = 2
+text = "Build Config"
+
+[node name="BuildRuntimeButton" type="Button" parent="ButtonRow"]
+layout_mode = 2
+text = "Build Runtime"
+
+[node name="ResetButton" type="Button" parent="ButtonRow"]
+layout_mode = 2
+text = "Reset Demo"
+
+[node name="StatusLabel" type="Label" parent="."]
+layout_mode = 2
+autowrap_mode = 2
+text = "Ready"
+
+[node name="ResultFrame" type="PanelContainer" parent="."]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+
+[node name="ResultView" type="RichTextLabel" parent="ResultFrame"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+custom_minimum_size = Vector2(0, 220)
+selection_enabled = true

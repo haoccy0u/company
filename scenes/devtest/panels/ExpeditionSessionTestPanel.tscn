@@ -1,0 +1,114 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scenes/devtest/panels/ExpeditionSessionTestPanel.gd" id="1_panel"]
+
+[node name="ExpeditionSessionTestPanel" type="VBoxContainer"]
+size_flags_horizontal = 3
+size_flags_vertical = 3
+theme_override_constants/separation = 8
+script = ExtResource("1_panel")
+
+[node name="TitleLabel" type="Label" parent="."]
+layout_mode = 2
+text = "Expedition Session (Step 2)"
+theme_override_font_sizes/font_size = 18
+
+[node name="TipsLabel" type="Label" parent="."]
+layout_mode = 2
+autowrap_mode = 2
+text = "Tests expedition skeleton only: setup session, advance event, complete event. CombatEngine is not connected yet."
+
+[node name="ConfigFrame" type="PanelContainer" parent="."]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="ConfigVBox" type="VBoxContainer" parent="ConfigFrame"]
+layout_mode = 2
+theme_override_constants/separation = 6
+
+[node name="LocationRow" type="HBoxContainer" parent="ConfigFrame/ConfigVBox"]
+layout_mode = 2
+theme_override_constants/separation = 6
+
+[node name="LocationIdLabel" type="Label" parent="ConfigFrame/ConfigVBox/LocationRow"]
+layout_mode = 2
+text = "Location ID"
+
+[node name="LocationIdEdit" type="LineEdit" parent="ConfigFrame/ConfigVBox/LocationRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "forest_outpost"
+placeholder_text = "forest_outpost"
+
+[node name="EnemyGroupsRow" type="HBoxContainer" parent="ConfigFrame/ConfigVBox"]
+layout_mode = 2
+theme_override_constants/separation = 6
+
+[node name="EnemyGroupsLabel" type="Label" parent="ConfigFrame/ConfigVBox/EnemyGroupsRow"]
+layout_mode = 2
+text = "Enemy Groups"
+
+[node name="EnemyGroupsEdit" type="LineEdit" parent="ConfigFrame/ConfigVBox/EnemyGroupsRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+placeholder_text = "wolves,bandits"
+text = "wolves,bandits"
+
+[node name="OptionsRow" type="HBoxContainer" parent="ConfigFrame/ConfigVBox"]
+layout_mode = 2
+theme_override_constants/separation = 6
+
+[node name="AllowNonCombatStubCheck" type="CheckBox" parent="ConfigFrame/ConfigVBox/OptionsRow"]
+layout_mode = 2
+text = "Allow NonCombat Stub"
+
+[node name="InfoLabel" type="Label" parent="ConfigFrame/ConfigVBox/OptionsRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+autowrap_mode = 2
+text = "Uses an internal demo squad runtime (2 members) for session setup."
+
+[node name="ButtonRow" type="HBoxContainer" parent="."]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="BuildSessionButton" type="Button" parent="ButtonRow"]
+layout_mode = 2
+text = "Build Session"
+
+[node name="AdvanceButton" type="Button" parent="ButtonRow"]
+layout_mode = 2
+text = "Advance"
+
+[node name="ResolveCombatStubButton" type="Button" parent="ButtonRow"]
+layout_mode = 2
+text = "Resolve Combat (Stub)"
+
+[node name="CompleteEventButton" type="Button" parent="ButtonRow"]
+layout_mode = 2
+text = "Complete Event"
+
+[node name="EndSessionButton" type="Button" parent="ButtonRow"]
+layout_mode = 2
+text = "End Session"
+
+[node name="ResetButton" type="Button" parent="ButtonRow"]
+layout_mode = 2
+text = "Reset"
+
+[node name="StatusLabel" type="Label" parent="."]
+layout_mode = 2
+autowrap_mode = 2
+text = "Ready"
+
+[node name="ResultFrame" type="PanelContainer" parent="."]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+
+[node name="ResultView" type="RichTextLabel" parent="ResultFrame"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+custom_minimum_size = Vector2(0, 220)
+selection_enabled = true

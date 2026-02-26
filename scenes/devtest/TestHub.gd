@@ -14,6 +14,7 @@ const TestRegistryRef = preload("res://src/devtest/TestRegistry.gd")
 var _entries: Array[Dictionary] = []
 var _current_index: int = -1
 var _current_panel: Control
+var _shared_context: Dictionary = {}
 
 
 func _ready() -> void:
@@ -87,6 +88,7 @@ func _open_panel(index: int, is_reload: bool = false) -> void:
 
 	if panel_instance is TestPanelBase:
 		var pending_base_panel := panel_instance as TestPanelBase
+		pending_base_panel.set_test_context(_shared_context)
 		if not pending_base_panel.log_requested.is_connected(_on_panel_log_requested):
 			pending_base_panel.log_requested.connect(_on_panel_log_requested)
 
