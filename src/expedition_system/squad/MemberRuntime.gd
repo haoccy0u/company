@@ -4,6 +4,7 @@ const AttributeSetRef = preload("res://src/attribute_framework/AttributeSet.gd")
 
 @export var member_id: StringName
 @export var actor_template_id: StringName
+@export var equipment_container: ItemContainer
 @export var equipment_ids: Array[StringName] = []
 @export var action_ids: Array[StringName] = []
 @export var passive_ids: Array[StringName] = []

@@ -42,7 +42,10 @@
 
 当前阶段玩家只配置：
 - 角色（`actor_template_id` / `actor_template`）
-- 装备（`equipment_ids`）
+- 装备（推荐使用 `equipment_container` 保存角色物品栏/装备栏数据）
+
+兼容字段（过渡期）：
+- `equipment_ids`（旧链路 fallback，用于现有 devtest 面板）
 
 以下内容从 `ActorTemplate` 加载（不是玩家手动配置）：
 - `action_ids`
@@ -65,7 +68,8 @@
 - `alive`
 - `current_hp`
 - `max_hp`
-- 装备选择
+- 装备容器数据（`equipment_container`）
+- `equipment_ids`（兼容字段，后续可移除）
 - 由模板加载的行动/被动/AI（供后续组装战斗输入）
 - 长期状态、资源占位字段
 

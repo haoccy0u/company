@@ -3,6 +3,7 @@ class_name MemberConfig extends Resource
 @export var member_id: StringName
 @export var actor_template_id: StringName
 @export var actor_template: ActorTemplate
+@export var equipment_container: ItemContainer
 @export var equipment_ids: Array[StringName] = []
 
 ## < 0 means use template max_hp as initial HP (debug/test override).

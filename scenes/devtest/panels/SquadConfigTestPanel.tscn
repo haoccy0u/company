@@ -140,6 +140,85 @@ step = 1.0
 value = -1.0
 prefix = "HP "
 
+[node name="EquipDragFrame" type="PanelContainer" parent="."]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="EquipDragVBox" type="VBoxContainer" parent="EquipDragFrame"]
+layout_mode = 2
+theme_override_constants/separation = 6
+
+[node name="EquipDragTitle" type="Label" parent="EquipDragFrame/EquipDragVBox"]
+layout_mode = 2
+text = "Equipment Drag Test (Warehouse -> Member Inventory)"
+
+[node name="EquipDragTip" type="Label" parent="EquipDragFrame/EquipDragVBox"]
+layout_mode = 2
+autowrap_mode = 2
+text = "Use left/right click to pick/place stacks (inventory cursor mode). Select a target row and move equipment from warehouse to that member's inventory."
+
+[node name="EquipTargetRow" type="HBoxContainer" parent="EquipDragFrame/EquipDragVBox"]
+layout_mode = 2
+theme_override_constants/separation = 6
+
+[node name="EquipTargetLabel" type="Label" parent="EquipDragFrame/EquipDragVBox/EquipTargetRow"]
+layout_mode = 2
+text = "Target Row"
+
+[node name="EquipTargetRowBox" type="OptionButton" parent="EquipDragFrame/EquipDragVBox/EquipTargetRow"]
+layout_mode = 2
+custom_minimum_size = Vector2(140, 0)
+
+[node name="FillWarehouseButton" type="Button" parent="EquipDragFrame/EquipDragVBox/EquipTargetRow"]
+layout_mode = 2
+text = "Fill Warehouse Demo"
+
+[node name="ClearTargetEquipButton" type="Button" parent="EquipDragFrame/EquipDragVBox/EquipTargetRow"]
+layout_mode = 2
+text = "Clear Target Equip"
+
+[node name="EquipGridsRow" type="HBoxContainer" parent="EquipDragFrame/EquipDragVBox"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 8
+
+[node name="WarehousePanel" type="PanelContainer" parent="EquipDragFrame/EquipDragVBox/EquipGridsRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="WarehouseVBox" type="VBoxContainer" parent="EquipDragFrame/EquipDragVBox/EquipGridsRow/WarehousePanel"]
+layout_mode = 2
+theme_override_constants/separation = 4
+
+[node name="WarehouseLabel" type="Label" parent="EquipDragFrame/EquipDragVBox/EquipGridsRow/WarehousePanel/WarehouseVBox"]
+layout_mode = 2
+text = "Warehouse"
+
+[node name="WarehouseGrid" type="GridContainer" parent="EquipDragFrame/EquipDragVBox/EquipGridsRow/WarehousePanel/WarehouseVBox"]
+layout_mode = 2
+columns = 4
+
+[node name="MemberEquipPanel" type="PanelContainer" parent="EquipDragFrame/EquipDragVBox/EquipGridsRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="MemberEquipVBox" type="VBoxContainer" parent="EquipDragFrame/EquipDragVBox/EquipGridsRow/MemberEquipPanel"]
+layout_mode = 2
+theme_override_constants/separation = 4
+
+[node name="MemberEquipLabel" type="Label" parent="EquipDragFrame/EquipDragVBox/EquipGridsRow/MemberEquipPanel/MemberEquipVBox"]
+layout_mode = 2
+text = "Member Equip"
+
+[node name="MemberEquipGrid" type="GridContainer" parent="EquipDragFrame/EquipDragVBox/EquipGridsRow/MemberEquipPanel/MemberEquipVBox"]
+layout_mode = 2
+columns = 3
+
+[node name="CursorStateLabel" type="Label" parent="EquipDragFrame/EquipDragVBox"]
+layout_mode = 2
+autowrap_mode = 2
+text = "Cursor: empty"
+
 [node name="ButtonRow" type="HBoxContainer" parent="."]
 layout_mode = 2
 theme_override_constants/separation = 8

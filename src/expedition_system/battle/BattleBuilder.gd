@@ -52,6 +52,7 @@ static func _build_player_entries(squad_runtime: SquadRuntime) -> Array:
 		entry.ai_id = member.ai_id
 		entry.action_ids = member.action_ids.duplicate()
 		entry.passive_ids = member.passive_ids.duplicate()
+		entry.equipment_container = member.equipment_container.duplicate(true) if member.equipment_container != null else null
 		entry.equipment_ids = member.equipment_ids.duplicate()
 		entries.append(entry)
 
@@ -80,6 +81,7 @@ static func _build_enemy_entries(combat_event: CombatEventDef) -> Array:
 		entry.ai_id = ai_id
 		entry.action_ids = action_ids.duplicate()
 		entry.passive_ids = []
+		entry.equipment_container = null
 		entry.equipment_ids = []
 		entry.extra = {
 			"enemy_group_id": combat_event.enemy_group_id,

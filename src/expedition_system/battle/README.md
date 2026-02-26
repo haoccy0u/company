@@ -25,6 +25,7 @@
 - `CombatEngine.gd`：自动战斗 MVP 规则裁决者（tick、冷却、AI、结算、日志）
 - `ActorRuntime.gd`：单场战斗运行时单位（当前已节点化）
 - `ActorRuntime.tscn`：统一战斗单位基础场景（由 `CombatEngine` 实例化）
+- `ActorInventoryComponent.gd`：战斗单位装备容器 + 装备解算（`item_id -> 属性buff`）
 
 ### D. 战后回写与策略
 - `ResultApplier.gd`：`BattleResult -> SquadRuntime` 回写（当前最小版）
@@ -68,7 +69,7 @@
 - 新增 `ActorRuntime.tscn` 作为统一实例化入口（当前为基础空场景 + 逻辑脚本）
 - `ActorRuntime.tscn` 已挂载：
   - `AttributeComponent`（属性访问/后续表现桥接）
-  - `InventoryComponent`（装备容器入口，供后续装备影响数值）
+  - `ActorInventoryComponent`（继承 `InventoryComponent`，负责装备容器与装备解算）
 - 仍由 `CombatEngine` 手动调用 `tick(delta)`（暂不依赖 `_process`）
 - 增加 UI 友好信号：
   - `hp_changed`
@@ -84,7 +85,9 @@
 当前组件驱动约定（已确定）：
 - `AttributeComponent` 会挂在 `ActorRuntime` 场景中，但其 `_physics_process` 自动推进已在 `ActorRuntime` 中禁用
 - 属性 tick 仍由 `CombatEngine -> ActorRuntime.tick(delta)` 统一驱动（避免重复推进）
-- `InventoryComponent` 当前先作为运行时组件入口，装备 ID 到真实 `ItemData` 的映射仍待实现
+- `ActorInventoryComponent` 当前会把 `equipment_ids` 转成占位 `ItemData` 放入 inventory，再从 inventory 读取 `item_id` 解算属性 buff
+- 现已支持优先从 `equipment_container`（`ItemContainer` 快照）加载角色配装；`equipment_ids` 仅作为兼容 fallback
+- 当前物品效果映射仍是 devtest 级最小表（后续替换为真实 item 数据驱动）
 
 ## 6. 与属性框架（`attribute_framework`）的关系
 
@@ -92,6 +95,8 @@
 - `ActorTemplate.base_attr_set` 作为角色基础属性模板
 - `ActorRuntime.attr_set` 作为战斗期属性实例
 - `ActorRuntime.attribute_component.attribute_set` 与 `attr_set` 同步
+- `ActorRuntime.inventory_component` 会根据 `equipment_ids` 重建装备属性 buff（通过 inventory 中的 `item_id`）
+- `ActorRuntime.inventory_component` 优先根据 `equipment_container` 重建装备属性 buff（通过 inventory 中的 `item_id`）
 - `ActorRuntime` 在运行期注入 `hp` 属性
 - `CombatEngine` 读取属性值进行结算
 - `ActorRuntime.heal()/take_damage()` 优先走属性框架（`Attribute.add/sub/set_value`）

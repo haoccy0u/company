@@ -54,6 +54,7 @@ src/expedition_system/
     CombatEngine.gd
     ActorRuntime.gd
     ActorRuntime.tscn
+    ActorInventoryComponent.gd
     BattleBuilder.gd
     BattleStart.gd
     BattleResult.gd
@@ -92,6 +93,10 @@ src/expedition_system/
 5. `BattleBuilder.from_combat_event()` 组装 `BattleStart`
 6. `BattleSession` 调用 `CombatEngine` 跑自动战斗
 7. `BattleResult` 产出后由 `ResultApplier` 回写 `SquadRuntime`
+
+说明（当前过渡期）：
+- 装备数据推荐通过 `ItemContainer`（`equipment_container`）在 `squad -> battle` 链路传递
+- `equipment_ids` 仍保留为兼容字段，后续可移除
 
 更多细节见：`src/expedition_system/CHARACTER_DATA_FLOW.md`
 

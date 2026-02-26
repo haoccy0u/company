@@ -1,6 +1,6 @@
 [gd_scene format=3 uid="uid://behrji6ltaa3q"]
 
-[ext_resource type="Script" uid="uid://df3yi2umg7f3i" path="res://scripts/cursor/CursorWithItem.gd" id="1_v03h1"]
+[ext_resource type="Script" uid="uid://df3yi2umg7f3i" path="res://src/cursor/CursorWithItem.gd" id="1_v03h1"]
 
 [node name="CursorWithItem" type="Control" unique_id=673526769]
 layout_mode = 3

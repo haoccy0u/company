@@ -10,7 +10,7 @@ signal alive_changed(actor_id: StringName, alive: bool)
 signal cooldown_changed(actor_id: StringName, cooldown_remaining: float, cooldown_total: float)
 
 @onready var attribute_component: AttributeComponent = get_node_or_null("AttributeComponent")
-@onready var inventory_component: InventoryComponent = get_node_or_null("InventoryComponent")
+@onready var inventory_component = get_node_or_null("ActorInventoryComponent")
 
 var actor_id: StringName = &""
 var camp: StringName = &""
@@ -29,12 +29,15 @@ var cooldown_remaining: float = 0.0
 var ai_id: StringName = &""
 var action_ids: Array[StringName] = []
 var passive_ids: Array[StringName] = []
+var equipment_container: ItemContainer
 var equipment_ids: Array[StringName] = []
 
 var tags: Dictionary = {}
 
 
 func _ready() -> void:
+	if inventory_component != null and not inventory_component.changed.is_connected(_on_inventory_component_changed):
+		inventory_component.changed.connect(_on_inventory_component_changed)
 	_sync_components_after_setup()
 
 
@@ -66,6 +69,7 @@ func setup_from_entry(entry) -> bool:
 	ai_id = entry.ai_id
 	action_ids = entry.action_ids.duplicate()
 	passive_ids = entry.passive_ids.duplicate()
+	equipment_container = entry.equipment_container.duplicate(true) if entry.equipment_container != null else null
 	equipment_ids = entry.equipment_ids.duplicate()
 	tags = entry.extra.duplicate(true)
 	_sync_components_after_setup()
@@ -215,6 +219,7 @@ func to_dict() -> Dictionary:
 		"ai_id": ai_id,
 		"action_ids": action_ids.duplicate(),
 		"passive_ids": passive_ids.duplicate(),
+		"has_equipment_container": equipment_container != null,
 		"equipment_ids": equipment_ids.duplicate(),
 		"tags": tags.duplicate(true),
 	}
@@ -285,11 +290,15 @@ func _sync_components_after_setup() -> void:
 		# Battle actors are runtime instances, not save roots.
 		inventory_component.save_enabled = false
 		inventory_component.ensure_initialized()
-		_sync_equipment_to_inventory_placeholder()
+		inventory_component.bind_runtime_attribute_set(attr_set)
+		if equipment_container != null and inventory_component.has_method("load_container_snapshot"):
+			inventory_component.load_container_snapshot(equipment_container)
+		elif not equipment_ids.is_empty() and inventory_component.has_method("load_equipment_ids"):
+			inventory_component.load_equipment_ids(equipment_ids)
+		_sync_runtime_state_from_attributes()
 
 
-func _sync_equipment_to_inventory_placeholder() -> void:
-	# TODO: Map `equipment_ids` to real `ItemData` and insert into InventoryComponent.
-	# Current step only guarantees the component exists and is initialized.
+func _on_inventory_component_changed() -> void:
 	if inventory_component == null:
 		return
+	_sync_runtime_state_from_attributes()

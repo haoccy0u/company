@@ -2,7 +2,7 @@
 
 [ext_resource type="Script" path="res://src/expedition_system/battle/ActorRuntime.gd" id="1_actor_runtime_script"]
 [ext_resource type="Script" path="res://src/attribute_framework/AttributeComponent.gd" id="2_attribute_component_script"]
-[ext_resource type="Script" path="res://src/inventory/InventoryComponent.gd" id="3_inventory_component_script"]
+[ext_resource type="Script" path="res://src/expedition_system/battle/ActorInventoryComponent.gd" id="3_actor_inventory_component_script"]
 
 [node name="ActorRuntime" type="Node"]
 script = ExtResource("1_actor_runtime_script")
@@ -10,6 +10,6 @@ script = ExtResource("1_actor_runtime_script")
 [node name="AttributeComponent" type="Node" parent="."]
 script = ExtResource("2_attribute_component_script")
 
-[node name="InventoryComponent" type="Node" parent="."]
-script = ExtResource("3_inventory_component_script")
+[node name="ActorInventoryComponent" type="Node" parent="."]
+script = ExtResource("3_actor_inventory_component_script")
 save_enabled = false

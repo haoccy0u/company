@@ -15,6 +15,7 @@ var base_attr_set: AttributeSet
 var ai_id: StringName = &""
 var action_ids: Array[StringName] = []
 var passive_ids: Array[StringName] = []
+var equipment_container: ItemContainer
 var equipment_ids: Array[StringName] = []
 
 var extra: Dictionary = {}
@@ -32,6 +33,7 @@ func to_dict() -> Dictionary:
 		"ai_id": ai_id,
 		"action_ids": action_ids.duplicate(),
 		"passive_ids": passive_ids.duplicate(),
+		"has_equipment_container": equipment_container != null,
 		"equipment_ids": equipment_ids.duplicate(),
 	}
 

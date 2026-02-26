@@ -34,6 +34,7 @@ static func _build_member_runtime(member_cfg: MemberConfig) -> MemberRuntime:
 	var runtime := MemberRuntime.new()
 	runtime.member_id = member_cfg.member_id
 	runtime.actor_template_id = member_cfg.actor_template_id if not member_cfg.actor_template_id.is_empty() else template.template_id
+	runtime.equipment_container = member_cfg.equipment_container.duplicate(true) if member_cfg.equipment_container != null else null
 	runtime.equipment_ids = member_cfg.equipment_ids.duplicate()
 	runtime.action_ids = template.action_ids.duplicate()
 	runtime.passive_ids = template.passive_ids.duplicate()
