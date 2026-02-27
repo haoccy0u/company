@@ -1,9 +1,9 @@
 extends RefCounted
 class_name CombatEngine
 
-const ActorRuntimeRef = preload("res://src/expedition_system/battle/ActorRuntime.gd")
-const ActorRuntimeSceneRef = preload("res://src/expedition_system/battle/ActorRuntime.tscn")
-const ActorResultRef = preload("res://src/expedition_system/battle/ActorResult.gd")
+const ActorRuntimeRef = preload("res://src/expedition_system/actor/ActorRuntime.gd")
+const ActorRuntimeSceneRef = preload("res://src/expedition_system/actor/ActorRuntime.tscn")
+const ActorResultRef = preload("res://src/expedition_system/actor/ActorResult.gd")
 const PassiveTemplateRef = preload("res://src/expedition_system/battle/PassiveTemplate.gd")
 
 const PASSIVE_CRUSH_JOINTS: StringName = &"crush_joints"

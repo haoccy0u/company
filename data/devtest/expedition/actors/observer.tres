@@ -1,6 +1,6 @@
 [gd_resource type="Resource" script_class="ActorTemplate" format=3]
 
-[ext_resource type="Script" path="res://src/expedition_system/squad/ActorTemplate.gd" id="1_actor"]
+[ext_resource type="Script" path="res://src/expedition_system/actor/ActorTemplate.gd" id="1_actor"]
 [ext_resource type="Resource" path="res://data/devtest/expedition/actors/attrs/observer_attr_set.tres" id="2_attr_set"]
 
 [resource]

@@ -1,7 +1,7 @@
 extends TestPanelBase
 class_name ExpeditionSessionTestPanel
 
-const ActorTemplateRef = preload("res://src/expedition_system/squad/ActorTemplate.gd")
+const ActorTemplateRef = preload("res://src/expedition_system/actor/ActorTemplate.gd")
 const AttributeSetRef = preload("res://src/attribute_framework/AttributeSet.gd")
 const AttributeRef = preload("res://src/attribute_framework/Attribute.gd")
 const MemberConfigRef = preload("res://src/expedition_system/squad/MemberConfig.gd")

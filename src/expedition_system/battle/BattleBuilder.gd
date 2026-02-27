@@ -1,6 +1,6 @@
 class_name BattleBuilder extends RefCounted
 
-const ActorEntryRef = preload("res://src/expedition_system/battle/ActorEntry.gd")
+const ActorEntryRef = preload("res://src/expedition_system/actor/ActorEntry.gd")
 const AttributeSetRef = preload("res://src/attribute_framework/AttributeSet.gd")
 const AttributeRef = preload("res://src/attribute_framework/Attribute.gd")
 

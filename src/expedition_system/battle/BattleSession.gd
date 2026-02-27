@@ -1,6 +1,6 @@
 class_name BattleSession extends RefCounted
 
-const ActorResultRef = preload("res://src/expedition_system/battle/ActorResult.gd")
+const ActorResultRef = preload("res://src/expedition_system/actor/ActorResult.gd")
 const BattleBuilderRef = preload("res://src/expedition_system/battle/BattleBuilder.gd")
 const CombatEngineRef = preload("res://src/expedition_system/battle/CombatEngine.gd")
 

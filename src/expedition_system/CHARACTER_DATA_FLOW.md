@@ -20,7 +20,7 @@
 
 ### 3.1 静态模板层：`ActorTemplate`
 
-文件：`src/expedition_system/squad/ActorTemplate.gd`
+文件：`src/expedition_system/actor/ActorTemplate.gd`
 
 作用：
 - 定义一个角色模板的静态信息（名称、基础属性、默认行动、被动、AI）
@@ -102,7 +102,7 @@
 ### 3.5 战斗输入层：`ActorEntry` / `BattleStart`
 
 文件：
-- `src/expedition_system/battle/ActorEntry.gd`
+- `src/expedition_system/actor/ActorEntry.gd`
 - `src/expedition_system/battle/BattleStart.gd`
 - `src/expedition_system/battle/BattleBuilder.gd`
 
@@ -122,7 +122,7 @@
 ### 3.6 战斗运行时层：`ActorRuntime` / `CombatEngine`
 
 文件：
-- `src/expedition_system/battle/ActorRuntime.gd`
+- `src/expedition_system/actor/ActorRuntime.gd`
 - `src/expedition_system/battle/CombatEngine.gd`
 
 作用：
@@ -143,7 +143,7 @@
 ### 3.7 战斗结果层：`ActorResult` / `BattleResult`
 
 文件：
-- `src/expedition_system/battle/ActorResult.gd`
+- `src/expedition_system/actor/ActorResult.gd`
 - `src/expedition_system/battle/BattleResult.gd`
 - `src/expedition_system/battle/ResultApplier.gd`
 
@@ -294,4 +294,3 @@
 2. 增加 `PassiveRegistry`（`passive_id -> PassiveTemplate`）
 3. 把 `ActorRuntime` 挂接战斗期 `AttributeSet`（由 `ActorEntry` 初始化）
 4. 实现第一个完整被动案例：`crush_joints`
-

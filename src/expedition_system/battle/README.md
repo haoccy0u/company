@@ -14,8 +14,8 @@
 ### A. 战斗输入/输出数据（DTO）
 - `BattleStart.gd`：单场战斗开局输入快照
 - `BattleResult.gd`：单场战斗结果（含日志、我方结果）
-- `ActorEntry.gd`：开局时单个参战单位输入条目
-- `ActorResult.gd`：战后单个单位结果条目
+- `ActorEntry.gd`：已迁移到 `src/expedition_system/actor/ActorEntry.gd`
+- `ActorResult.gd`：已迁移到 `src/expedition_system/actor/ActorResult.gd`
 
 ### B. 战斗装配与会话
 - `BattleBuilder.gd`：`CombatEvent + SquadRuntime -> BattleStart`
@@ -23,9 +23,9 @@
 
 ### C. 战斗运行内核
 - `CombatEngine.gd`：自动战斗 MVP 规则裁决者（tick、冷却、AI、结算、日志）
-- `ActorRuntime.gd`：单场战斗运行时单位（当前已节点化）
-- `ActorRuntime.tscn`：统一战斗单位基础场景（由 `CombatEngine` 实例化）
-- `ActorInventoryComponent.gd`：战斗单位装备容器 + 装备解算（`item_id -> 属性buff`）
+- `ActorRuntime.gd`：已迁移到 `src/expedition_system/actor/ActorRuntime.gd`
+- `ActorRuntime.tscn`：已迁移到 `src/expedition_system/actor/ActorRuntime.tscn`
+- `ActorInventoryComponent.gd`：已迁移到 `src/expedition_system/actor/ActorInventoryComponent.gd`
 
 ### D. 战后回写与策略
 - `ResultApplier.gd`：`BattleResult -> SquadRuntime` 回写（当前最小版）
@@ -127,6 +127,7 @@
 
 ## 9. 相关文档
 
+- `src/expedition_system/actor/README.md`
 - `src/expedition_system/battle/COMBAT_ENGINE_MVP_PLAN.md`
 - `src/expedition_system/TARGET_ARCHITECTURE.md`
 - `src/expedition_system/CHARACTER_DATA_FLOW.md`

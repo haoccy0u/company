@@ -32,9 +32,16 @@
 src/expedition_system/
   README.md
   CHARACTER_DATA_FLOW.md
-  squad/
+  actor/
     README.md
     ActorTemplate.gd
+    ActorEntry.gd
+    ActorResult.gd
+    ActorRuntime.gd
+    ActorRuntime.tscn
+    ActorInventoryComponent.gd
+  squad/
+    README.md
     MemberConfig.gd
     MemberRuntime.gd
     SquadConfig.gd
@@ -52,15 +59,10 @@ src/expedition_system/
     COMBAT_ENGINE_MVP_PLAN.md
     BattleSession.gd
     CombatEngine.gd
-    ActorRuntime.gd
-    ActorRuntime.tscn
-    ActorInventoryComponent.gd
     BattleBuilder.gd
     BattleStart.gd
     BattleResult.gd
     ResultApplier.gd
-    ActorEntry.gd
-    ActorResult.gd
     PassiveTemplate.gd
     policy/
       README.md
@@ -70,6 +72,10 @@ src/expedition_system/
 ```
 
 ## 4. 模块边界（必须遵守）
+
+### `actor/`
+- 管理角色模板、战斗输入条目、战斗运行时实例与角色战斗组件
+- 是 `squad/` 和 `battle/` 之间的角色层桥梁
 
 ### `squad/`
 - 管理出发前配置与远征期小队状态
@@ -100,17 +106,9 @@ src/expedition_system/
 
 更多细节见：`src/expedition_system/CHARACTER_DATA_FLOW.md`
 
-## 6. 结构整理说明（本轮策略）
+## 6. 相关阅读
 
-本轮以“文档与职责收敛”为主，不做脚本物理迁移（不改路径），原因：
-- 当前资源（`.tres` / `.tscn`）和脚本路径引用较多
-- 大规模移动会引入不必要回归风险
-- 先稳定模块边界，再做路径级重构更安全
-
-后续如果要做物理迁移，建议先在 `devtest` 覆盖回归后再执行。
-
-## 7. 相关阅读
-
+- `src/expedition_system/actor/README.md`
 - `src/expedition_system/squad/README.md`
 - `src/expedition_system/expedition/README.md`
 - `src/expedition_system/battle/README.md`

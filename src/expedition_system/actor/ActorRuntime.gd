@@ -1,7 +1,7 @@
 extends Node
 class_name ActorRuntime
 
-const ActorResultRef = preload("res://src/expedition_system/battle/ActorResult.gd")
+const ActorResultRef = preload("res://src/expedition_system/actor/ActorResult.gd")
 const AttributeBuffRef = preload("res://src/attribute_framework/AttributeBuff.gd")
 const AttributeRef = preload("res://src/attribute_framework/Attribute.gd")
 

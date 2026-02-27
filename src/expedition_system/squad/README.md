@@ -18,6 +18,7 @@
 ## 2. 文件职责（当前）
 
 - `ActorTemplate.gd`
+  - 位于 `src/expedition_system/actor/ActorTemplate.gd`
   - 角色模板资源（基础属性、行动、被动、AI、标签）
   - 基础数值权威来源是 `base_attr_set: AttributeSet`
 

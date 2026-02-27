@@ -1,8 +1,8 @@
 [gd_scene load_steps=4 format=3]
 
-[ext_resource type="Script" path="res://src/expedition_system/battle/ActorRuntime.gd" id="1_actor_runtime_script"]
+[ext_resource type="Script" path="res://src/expedition_system/actor/ActorRuntime.gd" id="1_actor_runtime_script"]
 [ext_resource type="Script" path="res://src/attribute_framework/AttributeComponent.gd" id="2_attribute_component_script"]
-[ext_resource type="Script" path="res://src/expedition_system/battle/ActorInventoryComponent.gd" id="3_actor_inventory_component_script"]
+[ext_resource type="Script" path="res://src/expedition_system/actor/ActorInventoryComponent.gd" id="3_actor_inventory_component_script"]
 
 [node name="ActorRuntime" type="Node"]
 script = ExtResource("1_actor_runtime_script")
