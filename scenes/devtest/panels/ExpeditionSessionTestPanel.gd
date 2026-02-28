@@ -612,7 +612,7 @@ func _validate_hp_policy_result() -> bool:
 	match hp_policy_id:
 		ResultApplierRef.CARRY_OVER_HP_POLICY_ID:
 			var result_by_member := {}
-			for row in _last_battle_result.player_results:
+			for row in _last_battle_result.get_player_result_rows():
 				if not (row is Dictionary):
 					continue
 				result_by_member[String((row as Dictionary).get("member_id", ""))] = float((row as Dictionary).get("hp_after", -1.0))

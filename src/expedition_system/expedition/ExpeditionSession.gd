@@ -9,8 +9,8 @@ var is_started: bool = false
 var is_ended: bool = false
 var end_reason: StringName = &""
 
-var current_event: RefCounted
-var last_event: RefCounted
+var current_event: ExpeditionEventDef
+var last_event: ExpeditionEventDef
 
 
 func setup(location_def: ExpeditionLocationDef, squad_runtime: SquadRuntime) -> bool:
@@ -52,7 +52,7 @@ func can_advance() -> bool:
 	return true
 
 
-func advance() -> RefCounted:
+func advance() -> ExpeditionEventDef:
 	if not is_started:
 		push_warning("ExpeditionSession.advance blocked: session not started")
 		return null
@@ -69,7 +69,7 @@ func advance() -> RefCounted:
 		end_session(&"no_living_members")
 		return null
 
-	var event := EventSelector.select_next(location, step_count)
+	var event: ExpeditionEventDef = EventSelector.select_next(location, step_count)
 	if event == null:
 		end_session(&"sequence_completed")
 		return null
@@ -99,7 +99,4 @@ func end_session(reason: StringName) -> void:
 func get_current_event_type() -> StringName:
 	if current_event == null:
 		return &""
-	if current_event.has_method("to_dict"):
-		var event_data: Dictionary = current_event.call("to_dict")
-		return event_data.get("event_type", &"")
-	return &""
+	return current_event.event_type

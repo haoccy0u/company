@@ -15,6 +15,18 @@ var enemies: Array[Dictionary] = []
 var rules: Dictionary = {}
 
 
+func get_player_rows() -> Array[Dictionary]:
+	if not player_entries.is_empty():
+		return _entries_to_dict_array(player_entries)
+	return players.duplicate(true)
+
+
+func get_enemy_rows() -> Array[Dictionary]:
+	if not enemy_entries.is_empty():
+		return _entries_to_dict_array(enemy_entries)
+	return enemies.duplicate(true)
+
+
 func to_dict() -> Dictionary:
 	return {
 		"battle_id": battle_id,
@@ -22,8 +34,8 @@ func to_dict() -> Dictionary:
 		"location_id": location_id,
 		"step_index": step_index,
 		"enemy_group_id": enemy_group_id,
-		"players": _entries_to_dict_array(player_entries) if not player_entries.is_empty() else players.duplicate(true),
-		"enemies": _entries_to_dict_array(enemy_entries) if not enemy_entries.is_empty() else enemies.duplicate(true),
+		"players": get_player_rows(),
+		"enemies": get_enemy_rows(),
 		"player_entries": _entries_to_dict_array(player_entries),
 		"enemy_entries": _entries_to_dict_array(enemy_entries),
 		"rules": rules.duplicate(true),

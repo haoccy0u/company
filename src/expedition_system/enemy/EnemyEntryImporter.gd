@@ -4,9 +4,25 @@ const ActorEntryRef = preload("res://src/expedition_system/actor/ActorEntry.gd")
 const ActorTemplateResolverRef = preload("res://src/expedition_system/actor/ActorTemplateResolver.gd")
 const PlayerActorAssemblerRef = preload("res://src/expedition_system/actor/PlayerActorAssembler.gd")
 const EnemyGroupDefRef = preload("res://src/expedition_system/enemy/EnemyGroupDef.gd")
+const GROUP_DIRS: PackedStringArray = [
+	"res://data/expedition/enemies/groups",
+	"res://data/devtest/expedition/enemies/groups",
+]
+const RESOURCE_EXTENSIONS: PackedStringArray = [".tres", ".res"]
 
 static var _group_cache: Dictionary = {}
-static var _scan_complete: bool = false
+static var _missing_group_ids: Dictionary = {}
+
+
+static func register_group(group: EnemyGroupDef) -> void:
+	if group == null:
+		return
+	if group.group_id.is_empty():
+		push_warning("EnemyEntryImporter.register_group skipped: group_id is empty")
+		return
+	var key := String(group.group_id)
+	_group_cache[key] = group
+	_missing_group_ids.erase(key)
 
 
 static func from_combat_event(combat_event: CombatEventDef) -> Array:
@@ -74,41 +90,32 @@ static func _resolve_group(group_id: StringName) -> Resource:
 	var key: String = String(group_id)
 	if _group_cache.has(key):
 		return _group_cache[key]
+	if _missing_group_ids.has(key):
+		return null
 
-	if not _scan_complete:
-		_scan_groups()
+	var loaded := _load_group_from_known_paths(group_id)
+	if loaded != null:
+		register_group(loaded)
+		return loaded
 
-	if _group_cache.has(key):
-		return _group_cache[key]
+	_missing_group_ids[key] = true
 	return null
 
 
-static func _scan_groups() -> void:
-	_scan_complete = true
-	_scan_dir("res://data")
+static func _load_group_from_known_paths(group_id: StringName) -> EnemyGroupDef:
+	for path in _build_candidate_paths(group_id, GROUP_DIRS):
+		var loaded: Resource = load(path)
+		if loaded is EnemyGroupDef:
+			return loaded as EnemyGroupDef
+		if loaded != null and loaded.get_script() == EnemyGroupDefRef:
+			return loaded as EnemyGroupDef
+	return null
 
 
-static func _scan_dir(dir_path: String) -> void:
-	var dir := DirAccess.open(dir_path)
-	if dir == null:
-		return
-
-	dir.list_dir_begin()
-	var name: String = dir.get_next()
-	while not name.is_empty():
-		if name.begins_with("."):
-			name = dir.get_next()
-			continue
-
-		var child_path: String = "%s/%s" % [dir_path, name]
-		if dir.current_is_dir():
-			_scan_dir(child_path)
-		elif name.ends_with(".tres") or name.ends_with(".res"):
-			var loaded: Resource = load(child_path)
-			if loaded != null and loaded.get_script() == EnemyGroupDefRef:
-				var group_id_value: Variant = loaded.get("group_id")
-				var loaded_group_id: StringName = group_id_value if group_id_value is StringName else StringName(str(group_id_value))
-				if not loaded_group_id.is_empty():
-					_group_cache[String(loaded_group_id)] = loaded
-		name = dir.get_next()
-	dir.list_dir_end()
+static func _build_candidate_paths(resource_id: StringName, directories: PackedStringArray) -> Array[String]:
+	var paths: Array[String] = []
+	var file_name := String(resource_id)
+	for directory in directories:
+		for ext in RESOURCE_EXTENSIONS:
+			paths.append("%s/%s%s" % [directory, file_name, ext])
+	return paths

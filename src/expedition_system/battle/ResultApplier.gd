@@ -1,6 +1,7 @@
 extends RefCounted
 class_name ResultApplier
 
+const ActorResultRef = preload("res://src/expedition_system/actor/ActorResult.gd")
 const DEFAULT_HP_POLICY_ID: StringName = &"carry_over"
 const CARRY_OVER_HP_POLICY_ID: StringName = &"carry_over"
 const CARRY_OVER_HP_POLICY_PATH := "res://src/expedition_system/battle/policy/CarryOverHpPolicy.gd"
@@ -22,49 +23,63 @@ static func apply_stub_result_to_squad_runtime(
 		return false
 
 	var hp_policy: RefCounted = _make_hp_policy(hp_policy_id)
-	var rows: Array[Dictionary] = _get_player_result_rows(result)
+	if not result.player_actor_results.is_empty():
+		for actor_result in result.player_actor_results:
+			if actor_result is ActorResultRef:
+				_apply_actor_result(actor_result as ActorResultRef, squad_runtime, hp_policy)
+		return true
 
-	for row in rows:
-		if not (row is Dictionary):
-			continue
-
-		var member_id_variant: Variant = row.get("member_id", &"")
-		var member_id: StringName = member_id_variant if member_id_variant is StringName else StringName(str(member_id_variant))
-		if member_id.is_empty():
-			continue
-
-		var member := squad_runtime.find_member(member_id)
-		if member == null:
-			continue
-
-		if member.max_hp <= 0.0:
-			var template := PlayerActorAssemblerRef.resolve_template(member.actor_template_id)
-			if template != null:
-				member.max_hp = PlayerActorAssemblerRef.get_template_max_hp(template)
-
-		var next_hp: float = hp_policy.apply_hp(member, row)
-		member.current_hp = clampf(next_hp, 0.0, maxf(member.max_hp, 0.0))
-		member.alive = bool(row.get("alive", member.current_hp > 0.0))
+	for row in result.get_player_result_rows():
+		if row is Dictionary:
+			_apply_player_result_row(row, squad_runtime, hp_policy)
 
 	return true
 
 
-static func _get_player_result_rows(result: BattleResult) -> Array[Dictionary]:
-	var rows: Array[Dictionary] = []
-	if result == null:
-		return rows
+static func _apply_actor_result(actor_result: ActorResultRef, squad_runtime: SquadRuntime, hp_policy: RefCounted) -> void:
+	if actor_result == null or squad_runtime == null:
+		return
+	if actor_result.member_id.is_empty():
+		return
 
-	if not result.player_actor_results.is_empty():
-		for actor_result in result.player_actor_results:
-			if actor_result == null:
-				continue
-			rows.append(actor_result.to_dict())
-		return rows
+	var member := squad_runtime.find_member(actor_result.member_id)
+	if member == null:
+		return
 
-	for row in result.player_results:
-		if row is Dictionary:
-			rows.append(row)
-	return rows
+	_ensure_member_max_hp(member)
+	var next_hp: float = hp_policy.apply_hp(member, actor_result.to_dict())
+	member.current_hp = clampf(next_hp, 0.0, maxf(member.max_hp, 0.0))
+	member.alive = actor_result.alive
+
+
+static func _apply_player_result_row(row: Dictionary, squad_runtime: SquadRuntime, hp_policy: RefCounted) -> void:
+	if squad_runtime == null:
+		return
+
+	var member_id_variant: Variant = row.get("member_id", &"")
+	var member_id: StringName = member_id_variant if member_id_variant is StringName else StringName(str(member_id_variant))
+	if member_id.is_empty():
+		return
+
+	var member := squad_runtime.find_member(member_id)
+	if member == null:
+		return
+
+	_ensure_member_max_hp(member)
+	var next_hp: float = hp_policy.apply_hp(member, row)
+	member.current_hp = clampf(next_hp, 0.0, maxf(member.max_hp, 0.0))
+	member.alive = bool(row.get("alive", member.current_hp > 0.0))
+
+
+static func _ensure_member_max_hp(member) -> void:
+	if member == null:
+		return
+	if member.max_hp > 0.0:
+		return
+
+	var template := PlayerActorAssemblerRef.resolve_template(member.actor_template_id)
+	if template != null:
+		member.max_hp = PlayerActorAssemblerRef.get_template_max_hp(template)
 
 
 static func _make_hp_policy(hp_policy_id: StringName) -> RefCounted:

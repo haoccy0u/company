@@ -1,9 +1,15 @@
 class_name ActorTemplateResolver extends RefCounted
 
-const SEARCH_ROOTS: PackedStringArray = ["res://data"]
+const TEMPLATE_DIRS: PackedStringArray = [
+	"res://data/expedition/actors",
+	"res://data/expedition/enemies/templates",
+	"res://data/devtest/expedition/actors",
+	"res://data/devtest/expedition/enemies/templates",
+]
+const RESOURCE_EXTENSIONS: PackedStringArray = [".tres", ".res"]
 
 static var _template_cache: Dictionary = {}
-static var _scan_complete: bool = false
+static var _missing_template_ids: Dictionary = {}
 
 
 static func register_template(template: ActorTemplate) -> void:
@@ -12,7 +18,9 @@ static func register_template(template: ActorTemplate) -> void:
 	if template.template_id.is_empty():
 		push_warning("ActorTemplateResolver.register_template skipped: template_id is empty")
 		return
-	_template_cache[String(template.template_id)] = template
+	var key := String(template.template_id)
+	_template_cache[key] = template
+	_missing_template_ids.erase(key)
 
 
 static func register_templates(templates: Array) -> void:
@@ -28,39 +36,30 @@ static func resolve(template_id: StringName) -> ActorTemplate:
 	var key: String = String(template_id)
 	if _template_cache.has(key):
 		return _template_cache.get(key) as ActorTemplate
+	if _missing_template_ids.has(key):
+		return null
 
-	if not _scan_complete:
-		_scan_templates()
+	var loaded := _load_template_from_known_paths(template_id)
+	if loaded != null:
+		register_template(loaded)
+		return loaded
 
-	if _template_cache.has(key):
-		return _template_cache.get(key) as ActorTemplate
+	_missing_template_ids[key] = true
 	return null
 
 
-static func _scan_templates() -> void:
-	_scan_complete = true
-	for root in SEARCH_ROOTS:
-		_scan_dir(root)
+static func _load_template_from_known_paths(template_id: StringName) -> ActorTemplate:
+	for path in _build_candidate_paths(template_id, TEMPLATE_DIRS):
+		var loaded := load(path)
+		if loaded is ActorTemplate:
+			return loaded as ActorTemplate
+	return null
 
 
-static func _scan_dir(dir_path: String) -> void:
-	var dir := DirAccess.open(dir_path)
-	if dir == null:
-		return
-
-	dir.list_dir_begin()
-	var name: String = dir.get_next()
-	while not name.is_empty():
-		if name.begins_with("."):
-			name = dir.get_next()
-			continue
-
-		var child_path: String = "%s/%s" % [dir_path, name]
-		if dir.current_is_dir():
-			_scan_dir(child_path)
-		elif name.ends_with(".tres") or name.ends_with(".res"):
-			var loaded := load(child_path)
-			if loaded is ActorTemplate:
-				register_template(loaded as ActorTemplate)
-		name = dir.get_next()
-	dir.list_dir_end()
+static func _build_candidate_paths(resource_id: StringName, directories: PackedStringArray) -> Array[String]:
+	var paths: Array[String] = []
+	var file_name := String(resource_id)
+	for directory in directories:
+		for ext in RESOURCE_EXTENSIONS:
+			paths.append("%s/%s%s" % [directory, file_name, ext])
+	return paths

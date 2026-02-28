@@ -35,6 +35,21 @@ Meaning:
 The sequence is consumed by `step_index`.
 When `step_index` reaches the end of the sequence, `ExpeditionSession.advance()` ends the expedition with `sequence_completed`.
 
+## Frozen Baseline
+
+The current expedition system is being stabilized around this baseline:
+- finite ordered `event_sequence`
+- explicit event consumption
+- battle and non-battle events share one session flow
+
+Planned but deferred work is tracked separately under:
+- `src/expedition_system/docs/futureplans/`
+- `src/expedition_system/docs/futureplans/expedition_event_pool_plan.md`
+
+This means:
+- do not replace the current sequence model during stabilization
+- future event-pool work should be treated as a later expansion
+
 ## Main Files
 
 - `ExpeditionLocationDef.gd`

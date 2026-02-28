@@ -1,17 +1,18 @@
-class_name CombatEventDef extends RefCounted
+class_name CombatEventDef extends ExpeditionEventDef
 
 const EVENT_TYPE: StringName = &"combat"
 
-var event_id: StringName
-var event_type: StringName = EVENT_TYPE
-var location_id: StringName
 var enemy_group_id: StringName
 var difficulty_seed: int = 0
-var step_index: int = -1
+
+
+func _init() -> void:
+	event_type = EVENT_TYPE
 
 
 static func create(_location_id: StringName, _enemy_group_id: StringName, _step_index: int, _difficulty_seed: int = 0) -> CombatEventDef:
 	var event := CombatEventDef.new()
+	event.event_type = EVENT_TYPE
 	event.location_id = _location_id
 	event.enemy_group_id = _enemy_group_id
 	event.step_index = _step_index
@@ -21,11 +22,7 @@ static func create(_location_id: StringName, _enemy_group_id: StringName, _step_
 
 
 func to_dict() -> Dictionary:
-	return {
-		"event_id": event_id,
-		"event_type": event_type,
-		"location_id": location_id,
-		"enemy_group_id": enemy_group_id,
-		"difficulty_seed": difficulty_seed,
-		"step_index": step_index,
-	}
+	var data := build_base_dict()
+	data["enemy_group_id"] = enemy_group_id
+	data["difficulty_seed"] = difficulty_seed
+	return data

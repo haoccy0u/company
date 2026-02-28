@@ -21,8 +21,6 @@ static func from_combat_event(combat_event: CombatEventDef, squad_runtime: Squad
 
 	start.player_entries = _build_player_entries(squad_runtime)
 	start.enemy_entries = _build_enemy_entries(combat_event)
-	start.players = _entry_array_to_dicts(start.player_entries)
-	start.enemies = _entry_array_to_dicts(start.enemy_entries)
 	start.rules = {
 		"hp_policy_id": &"carry_over",
 		"cooldown_stagger": true,
@@ -49,12 +47,3 @@ static func _build_player_entries(squad_runtime: SquadRuntime) -> Array:
 
 static func _build_enemy_entries(combat_event: CombatEventDef) -> Array:
 	return EnemyEntryImporterRef.from_combat_event(combat_event)
-
-
-static func _entry_array_to_dicts(entries: Array) -> Array[Dictionary]:
-	var rows: Array[Dictionary] = []
-	for entry in entries:
-		if entry == null:
-			continue
-		rows.append(entry.to_dict())
-	return rows

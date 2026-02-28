@@ -18,9 +18,4 @@ func build_event(location: ExpeditionLocationDef, step_index: int) -> RefCounted
 		return null
 	if location.get_event_type(step_index) != &"rest":
 		return null
-	var event = RestEventDefRef.new()
-	event.location_id = location.location_id
-	event.step_index = step_index
-	event.heal_amount = RestEventDefRef.DEFAULT_HEAL_AMOUNT
-	event.event_id = StringName("%s_rest_%d" % [String(location.location_id), step_index])
-	return event
+	return RestEventDefRef.create(location.location_id, step_index, RestEventDefRef.DEFAULT_HEAL_AMOUNT)

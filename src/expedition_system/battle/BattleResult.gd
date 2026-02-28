@@ -18,6 +18,12 @@ var player_results: Array[Dictionary] = []
 var event_log: Array[Dictionary] = []
 
 
+func get_player_result_rows() -> Array[Dictionary]:
+	if not player_actor_results.is_empty():
+		return _actor_results_to_dict_array(player_actor_results)
+	return player_results.duplicate(true)
+
+
 func to_dict() -> Dictionary:
 	return {
 		"battle_id": battle_id,
@@ -30,7 +36,7 @@ func to_dict() -> Dictionary:
 		"player_count": player_count,
 		"living_player_count": living_player_count,
 		"enemy_group_id": enemy_group_id,
-		"player_results": _actor_results_to_dict_array(player_actor_results) if not player_actor_results.is_empty() else player_results.duplicate(true),
+		"player_results": get_player_result_rows(),
 		"player_actor_results": _actor_results_to_dict_array(player_actor_results),
 		"log": event_log.duplicate(true),
 	}

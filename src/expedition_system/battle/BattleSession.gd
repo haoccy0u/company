@@ -46,19 +46,9 @@ func run_stub_from_battle_start(start: BattleStart) -> BattleResult:
 	result.ended_reason = _as_string_name(run_outcome.get("end_reason", &"stub_failed"))
 	result.living_player_count = int(run_outcome.get("living_player_count", 0))
 	result.player_actor_results = _cast_actor_results_array(run_outcome.get("player_actor_results", []))
-	result.player_results = _actor_results_to_dict_array(result.player_actor_results)
 	result.event_log = _cast_event_log_array(run_outcome.get("event_log", []))
 
 	return result
-
-
-func _actor_results_to_dict_array(results: Array) -> Array[Dictionary]:
-	var rows: Array[Dictionary] = []
-	for item in results:
-		if item == null:
-			continue
-		rows.append(item.to_dict())
-	return rows
 
 
 func _cast_actor_results_array(value: Variant) -> Array:

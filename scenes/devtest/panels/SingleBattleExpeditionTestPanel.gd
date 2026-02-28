@@ -443,7 +443,7 @@ func _refresh_result_view() -> void:
 	])
 	result_view.append_text("event_log=%d\n\n" % _last_battle_result.event_log.size())
 
-	for row in _last_battle_result.player_results:
+	for row in _last_battle_result.get_player_result_rows():
 		if not (row is Dictionary):
 			continue
 		result_view.append_text("- %s hp %s -> %s alive=%s\n" % [
@@ -613,7 +613,6 @@ func _build_battle_result_from_engine(engine, start):
 	result.ended_reason = engine.end_reason
 	result.living_player_count = _count_living_runtime_actors(engine.player_actors)
 	result.player_actor_results = _build_actor_results(engine.player_actors)
-	result.player_results = _actor_results_to_dict_array(result.player_actor_results)
 	result.event_log = engine.event_log.duplicate(true)
 	return result
 
@@ -625,16 +624,6 @@ func _build_actor_results(actors: Array) -> Array:
 			continue
 		rows.append(actor.to_actor_result())
 	return rows
-
-
-func _actor_results_to_dict_array(results: Array) -> Array[Dictionary]:
-	var rows: Array[Dictionary] = []
-	for item in results:
-		if item == null:
-			continue
-		rows.append(item.to_dict())
-	return rows
-
 
 func _count_living_runtime_actors(actors: Array) -> int:
 	var count: int = 0

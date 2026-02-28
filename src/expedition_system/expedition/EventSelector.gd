@@ -11,7 +11,7 @@ static func get_strategies() -> Array:
 	]
 
 
-static func select_next(location: ExpeditionLocationDef, step_index: int) -> RefCounted:
+static func select_next(location: ExpeditionLocationDef, step_index: int) -> ExpeditionEventDef:
 	if location == null:
 		push_error("EventSelector.select_next failed: location is null")
 		return null
@@ -21,7 +21,7 @@ static func select_next(location: ExpeditionLocationDef, step_index: int) -> Ref
 			continue
 		if not strategy.can_build(location, step_index):
 			continue
-		var event: RefCounted = strategy.build_event(location, step_index)
+		var event: ExpeditionEventDef = strategy.build_event(location, step_index)
 		if event != null:
 			return event
 
