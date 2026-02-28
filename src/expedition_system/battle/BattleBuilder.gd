@@ -104,6 +104,16 @@ static func _entry_array_to_dicts(entries: Array) -> Array[Dictionary]:
 static func _get_enemy_group_spec(enemy_group_id: StringName, step_index: int) -> Dictionary:
 	var step_scale: float = 1.0 + (0.08 * float(max(step_index, 0)))
 	match enemy_group_id:
+		&"training_dummy":
+			return {
+				"count": 1,
+				"hp_max": 999.0,
+				"atk": 5.0,
+				"def": 0.0,
+				"spd": 1.0 / 6.0,
+				"action_id": &"basic_attack",
+				"ai_id": &"basic_auto",
+			}
 		&"wolves":
 			return {
 				"count": 3,

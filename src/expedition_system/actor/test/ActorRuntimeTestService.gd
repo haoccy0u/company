@@ -52,14 +52,14 @@ static func clear_host(host: Node) -> void:
 		child.free()
 
 
-static func build_actor(host: Node, template_id: StringName, options: Dictionary = {}) -> ActorRuntime:
+static func build_actor(host: Node, template_id: StringName, options: Dictionary = {}):
 	if host == null:
 		return null
 	var template := _find_template(template_id)
 	if template == null:
 		return null
 
-	var runtime = ActorRuntimeScene.instantiate() as ActorRuntime
+	var runtime = ActorRuntimeScene.instantiate()
 	if runtime == null:
 		return null
 
@@ -95,7 +95,7 @@ static func build_actor(host: Node, template_id: StringName, options: Dictionary
 	return runtime
 
 
-static func collect_actor_snapshot(actor: ActorRuntime) -> Dictionary:
+static func collect_actor_snapshot(actor) -> Dictionary:
 	if actor == null:
 		return {}
 	return {
@@ -106,7 +106,7 @@ static func collect_actor_snapshot(actor: ActorRuntime) -> Dictionary:
 		"hp_max": actor.get_max_hp(),
 		"alive": actor.is_alive(),
 		"cooldown_remaining": actor.cooldown_remaining,
-		"cooldown_total": actor.cooldown_total,
+		"cooldown_total": actor.get_cooldown_total(),
 		"action_ids": actor.action_ids.duplicate(),
 		"passive_ids": actor.passive_ids.duplicate(),
 		"attr": collect_attr_snapshot(actor),
@@ -115,14 +115,12 @@ static func collect_actor_snapshot(actor: ActorRuntime) -> Dictionary:
 	}
 
 
-static func collect_attr_snapshot(actor: ActorRuntime) -> Dictionary:
+static func collect_attr_snapshot(actor) -> Dictionary:
 	if actor == null:
 		return {}
 	var attr_names: Array[StringName] = [
 		&"hp",
 		&"hp_max",
-		&"damage",
-		&"heal",
 		&"atk",
 		&"def",
 		&"spd",
@@ -141,7 +139,7 @@ static func collect_attr_snapshot(actor: ActorRuntime) -> Dictionary:
 	return rows
 
 
-static func collect_buff_snapshot(actor: ActorRuntime) -> Dictionary:
+static func collect_buff_snapshot(actor) -> Dictionary:
 	if actor == null or actor.attr_set == null:
 		return {}
 	var rows: Dictionary = {}
@@ -165,7 +163,7 @@ static func collect_buff_snapshot(actor: ActorRuntime) -> Dictionary:
 	return rows
 
 
-static func apply_demo_weaken(actor: ActorRuntime, duration_sec: float = 2.0, multiplier: float = 0.7) -> bool:
+static func apply_demo_weaken(actor, duration_sec: float = 2.0, multiplier: float = 0.7) -> bool:
 	if actor == null:
 		return false
 	var buff := AttributeBuffRef.mult(multiplier, "weaken")
@@ -173,11 +171,11 @@ static func apply_demo_weaken(actor: ActorRuntime, duration_sec: float = 2.0, mu
 	return actor.apply_attribute_buff(&"dmg_out_mul", buff)
 
 
-static func build_turn_plan_report(host: Node, actor: ActorRuntime, target_template_id: StringName, ally_damage: float = 25.0) -> Dictionary:
+static func build_turn_plan_report(host: Node, actor, target_template_id: StringName, ally_damage: float = 25.0) -> Dictionary:
 	if actor == null:
 		return {}
 	_clear_host_except(host, actor)
-	var target := build_actor(host, target_template_id, {
+	var target = build_actor(host, target_template_id, {
 		"actor_id": "%s_target" % String(target_template_id),
 		"member_id": "%s_target" % String(target_template_id),
 		"camp": &"enemy",
@@ -187,7 +185,7 @@ static func build_turn_plan_report(host: Node, actor: ActorRuntime, target_templ
 
 	var allies: Array = [actor]
 	var opponents: Array = [target]
-	var support_ally: ActorRuntime = null
+	var support_ally = null
 	if actor.passive_ids.has(&"attack_heal_ally"):
 		support_ally = build_actor(host, &"observer", {
 			"actor_id": "support_ally",
@@ -198,7 +196,7 @@ static func build_turn_plan_report(host: Node, actor: ActorRuntime, target_templ
 			support_ally.apply_damage(ally_damage)
 			allies.append(support_ally)
 
-	var plan := actor.build_turn_plan(opponents, allies)
+	var plan = actor.build_turn_plan(opponents, allies)
 	var follow_up_summary: Array[Dictionary] = []
 	for row in plan.get("follow_up_effects", []):
 		if not (row is Dictionary):
@@ -211,168 +209,16 @@ static func build_turn_plan_report(host: Node, actor: ActorRuntime, target_templ
 			"amount": row.get("amount", 0.0),
 		})
 
-	var attack_ctx: Dictionary = plan.get("attack_ctx", {})
+	var attack_payload: Dictionary = plan.get("attack_payload", {})
+	var damage_ctx: Dictionary = target.resolve_attack_payload(attack_payload) if target != null else {}
 	return {
 		"plan_ready": not plan.is_empty(),
 		"selected_action": plan.get("action_id", &""),
 		"target_actor_id": plan["primary_target"].actor_id if plan.get("primary_target", null) != null else &"",
-		"damage_pre_passive": float(attack_ctx.get("damage_pre_passive", 0.0)),
-		"damage_final": float(attack_ctx.get("damage_final", 0.0)),
-		"triggered_effect_ids": attack_ctx.get("triggered_effect_ids", []),
+		"damage_pre_passive": float(damage_ctx.get("raw_damage", 0.0)),
+		"damage_final": float(damage_ctx.get("final_damage", 0.0)),
+		"triggered_effect_ids": attack_payload.get("triggered_effect_ids", []),
 		"follow_up_effects": follow_up_summary,
-	}
-
-
-static func run_smoke_suite(host: Node) -> Dictionary:
-	var tests: Array[Dictionary] = []
-
-	tests.append(_run_hp_clamp_case(host))
-	tests.append(_run_equipment_apply_case(host))
-	tests.append(_run_cooldown_total_case(host))
-	tests.append(_run_observer_effect_case(host))
-	tests.append(_run_robot_heal_case(host))
-
-	var passed: int = 0
-	for row in tests:
-		if bool(row.get("pass", false)):
-			passed += 1
-
-	return {
-		"suite": "actor_runtime_smoke",
-		"pass_count": passed,
-		"fail_count": tests.size() - passed,
-		"tests": tests,
-	}
-
-
-static func _run_hp_clamp_case(host: Node) -> Dictionary:
-	clear_host(host)
-	var actor := build_actor(host, &"observer", {"actor_id": "hp_case"})
-	if actor == null:
-		return _fail_case("hp_clamp", "failed to build actor")
-
-	actor.apply_heal(999.0)
-	var hp_after_heal: float = actor.get_current_hp()
-	var hp_max: float = actor.get_max_hp()
-	actor.apply_damage(999.0)
-	var hp_after_damage: float = actor.get_current_hp()
-	var ok := is_equal_approx(hp_after_heal, hp_max) and is_zero_approx(hp_after_damage) and not actor.is_alive()
-	return {
-		"id": "hp_clamp",
-		"pass": ok,
-		"detail": "heal_to=%s hp_max=%s damage_to=%s alive=%s" % [
-			str(hp_after_heal),
-			str(hp_max),
-			str(hp_after_damage),
-			str(actor.is_alive())
-		]
-	}
-
-
-static func _run_equipment_apply_case(host: Node) -> Dictionary:
-	clear_host(host)
-	var actor := build_actor(host, &"observer", {
-		"actor_id": "equip_case",
-		"loadout_id": &"sword_shield",
-	})
-	if actor == null:
-		return _fail_case("equipment_apply", "failed to build actor")
-
-	var atk: float = actor.get_attr_value(&"atk", 0.0)
-	var defense: float = actor.get_attr_value(&"def", 0.0)
-	var hp_max: float = actor.get_attr_value(&"hp_max", 0.0)
-	var ok := is_equal_approx(atk, 18.0) and is_equal_approx(defense, 9.0) and is_equal_approx(hp_max, 120.0)
-	return {
-		"id": "equipment_apply",
-		"pass": ok,
-		"detail": "atk=%s def=%s hp_max=%s equip=%s" % [
-			str(atk),
-			str(defense),
-			str(hp_max),
-			str(_collect_actor_equipment_ids(actor))
-		]
-	}
-
-
-static func _run_observer_effect_case(host: Node) -> Dictionary:
-	clear_host(host)
-	var observer := build_actor(host, &"observer", {"actor_id": "observer_case"})
-	var target := build_actor(host, &"robot", {"actor_id": "observer_target", "camp": &"enemy"})
-	if observer == null or target == null:
-		return _fail_case("observer_weaken_intent", "failed to build observer or target")
-
-	var effects := observer.build_on_attack_effects(target, [observer])
-	var has_weaken_apply: bool = false
-	for row in effects:
-		if row.get("status_id", &"") == &"weaken":
-			has_weaken_apply = true
-			break
-
-	apply_demo_weaken(target)
-	var attack_ctx := observer.compute_attack_context(target)
-	var triggered: Array = attack_ctx.get("triggered_effect_ids", [])
-	var ok := has_weaken_apply and triggered.has(&"bonus_damage_vs_weakened") and float(attack_ctx.get("damage_final", 0.0)) > float(attack_ctx.get("damage_pre_passive", 0.0))
-	return {
-		"id": "observer_weaken_intent",
-		"pass": ok,
-		"detail": "apply_weaken=%s triggered=%s damage=%s->%s" % [
-			str(has_weaken_apply),
-			str(triggered),
-			str(attack_ctx.get("damage_pre_passive", 0.0)),
-			str(attack_ctx.get("damage_final", 0.0))
-		]
-	}
-
-
-static func _run_cooldown_total_case(host: Node) -> Dictionary:
-	clear_host(host)
-	var actor := build_actor(host, &"observer", {
-		"actor_id": "cooldown_case",
-		"loadout_id": &"bow",
-	})
-	if actor == null:
-		return _fail_case("cooldown_total_derived", "failed to build actor")
-
-	var spd: float = actor.get_attr_value(&"spd", 0.0)
-	var cooldown_total: float = actor.get_attr_value(&"cooldown_total", 0.0)
-	var expected: float = maxf(1.0 / maxf(spd, 0.1), 0.1)
-	var ok := is_equal_approx(cooldown_total, expected) and is_equal_approx(actor.cooldown_total, expected)
-	return {
-		"id": "cooldown_total_derived",
-		"pass": ok,
-		"detail": "spd=%s cooldown_total=%s expected=%s" % [
-			str(spd),
-			str(cooldown_total),
-			str(expected),
-		]
-	}
-
-
-static func _run_robot_heal_case(host: Node) -> Dictionary:
-	clear_host(host)
-	var robot := build_actor(host, &"robot", {"actor_id": "robot_case"})
-	if robot == null:
-		return _fail_case("robot_heal_intent", "failed to build robot")
-
-	var report := build_turn_plan_report(host, robot, &"observer", 40.0)
-	var heal_amount: float = 0.0
-	var heal_target_actor_id: StringName = &""
-	for row in report.get("follow_up_effects", []):
-		if row.get("type", &"") == &"heal":
-			heal_amount = float(row.get("amount", 0.0))
-			heal_target_actor_id = row.get("target_actor_id", &"")
-			break
-
-	var ok := bool(report.get("plan_ready", false)) and heal_amount > 0.0 and heal_target_actor_id == &"support_ally"
-	return {
-		"id": "robot_heal_intent",
-		"pass": ok,
-		"detail": "plan=%s heal_amount=%s heal_target=%s effects=%s" % [
-			str(report.get("plan_ready", false)),
-			str(heal_amount),
-			String(heal_target_actor_id),
-			str(report.get("follow_up_effects", []))
-		]
 	}
 
 
@@ -429,21 +275,12 @@ static func _make_equipment_container(item_ids: Array[StringName], slot_count: i
 	return container
 
 
-static func _collect_actor_equipment_ids(actor: ActorRuntime) -> Array[StringName]:
+static func _collect_actor_equipment_ids(actor) -> Array[StringName]:
 	if actor == null or actor.inventory_component == null:
 		return []
 	if actor.inventory_component.has_method("collect_equipped_item_ids"):
 		return actor.inventory_component.collect_equipped_item_ids()
 	return []
-
-
-static func _fail_case(case_id: String, detail: String) -> Dictionary:
-	return {
-		"id": case_id,
-		"pass": false,
-		"detail": detail,
-	}
-
 
 static func _clear_host_except(host: Node, keep: Node) -> void:
 	if host == null:

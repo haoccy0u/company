@@ -78,7 +78,7 @@
 ## 7. Actor Turn Plan Boundary
 
 当前约定：
-- `ActorRuntime` 负责生成本回合计划：`action_id / primary_target / attack_ctx / follow_up_effects`
+- `ActorRuntime` 负责生成本回合计划：`action_id / primary_target / attack_payload / follow_up_effects`
 - `CombatEngine` 负责统一应用这个计划造成的跨 Actor 影响
 - actor 可以决定打谁，但不能直接修改目标状态
 - `ActorRuntime` 负责导出状态移除事件与 `ActorResult`

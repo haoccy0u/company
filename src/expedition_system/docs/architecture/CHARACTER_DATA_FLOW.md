@@ -142,8 +142,6 @@
 - `ActorRuntime` 在战斗期复制 `base_attr_set`
 - 运行时再补充：
   - `hp`
-  - `damage`
-  - `heal`
   - `cooldown_total`
 
 当前常用基础属性名：

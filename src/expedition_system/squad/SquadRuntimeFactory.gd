@@ -8,7 +8,6 @@ static func from_config(config: SquadConfig) -> SquadRuntime:
 
 	var runtime := SquadRuntime.new()
 	runtime.source_squad_id = config.squad_id
-	runtime.members = []
 	runtime.shared_res = {}
 	runtime.long_states = {}
 

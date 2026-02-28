@@ -21,7 +21,7 @@ base_value = 10.0
 [sub_resource type="Resource" id="Attr_spd"]
 script = ExtResource("2_attr")
 attribute_name = "spd"
-base_value = 0.9
+base_value = 0.125
 
 [sub_resource type="Resource" id="Attr_dmg_out_mul"]
 script = ExtResource("2_attr")

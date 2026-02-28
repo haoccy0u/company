@@ -77,7 +77,7 @@ func run_auto_until_end(start: BattleStart) -> Dictionary:
 		is_finished = true
 		is_running = false
 		end_reason = &"tick_limit_reached"
-		winner_camp = _winner_from_survivors()
+		winner_camp = &""
 
 	event_log.append({
 		"type": &"combat_end",
@@ -137,7 +137,7 @@ func _process_ready_actors(group_actors: Array) -> void:
 
 
 func _resolve_actor_turn(attacker) -> void:
-	if attacker == null or not attacker.is_usable():
+	if attacker == null or not attacker.can_act():
 		return
 
 	var turn_plan: Dictionary = attacker.build_turn_plan(_get_actor_opponents(attacker), _get_actor_allies(attacker))
@@ -158,9 +158,10 @@ func _resolve_actor_turn(attacker) -> void:
 		"target_member_id": target.member_id,
 	}
 
-	var attack_ctx: Dictionary = turn_plan.get("attack_ctx", {})
-	var damage_before_bonus: float = float(attack_ctx.get("damage_pre_passive", 0.0))
-	var damage_final: float = float(attack_ctx.get("damage_final", 0.0))
+	var attack_payload: Dictionary = turn_plan.get("attack_payload", {})
+	var damage_ctx: Dictionary = target.resolve_attack_payload(attack_payload)
+	var damage_before_bonus: float = float(damage_ctx.get("raw_damage", 0.0))
+	var damage_final: float = float(damage_ctx.get("final_damage", 0.0))
 	var target_hp_before: float = target.get_current_hp()
 	var dealt: float = target.apply_damage(damage_final)
 	var target_hp_after: float = target.get_current_hp()
@@ -181,7 +182,7 @@ func _resolve_actor_turn(attacker) -> void:
 		"source_actor_id": attacker.actor_id,
 	})
 
-	var triggered_effect_ids: Array = attack_ctx.get("triggered_effect_ids", [])
+	var triggered_effect_ids: Array = attack_payload.get("triggered_effect_ids", [])
 	for effect_id in triggered_effect_ids:
 		event_log.append({
 			"type": &"passive_trigger",
@@ -334,7 +335,7 @@ func _apply_initial_cooldown_stagger() -> void:
 func _stagger_group(group_actors: Array) -> void:
 	var living: Array = []
 	for actor in group_actors:
-		if actor != null and actor.is_usable():
+		if actor != null and actor.can_act():
 			living.append(actor)
 	var n: int = living.size()
 	if n <= 1:
@@ -410,7 +411,7 @@ func _winner_from_survivors() -> StringName:
 func _count_living(actors: Array) -> int:
 	var count: int = 0
 	for actor in actors:
-		if actor != null and actor.is_usable():
+		if actor != null and actor.is_alive():
 			count += 1
 	return count
 

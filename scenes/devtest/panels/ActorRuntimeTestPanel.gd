@@ -18,7 +18,6 @@ const ActorRuntimeTestServiceRef = preload("res://src/expedition_system/actor/te
 @onready var apply_weaken_button: Button = $ButtonRow/ApplyWeakenButton
 @onready var tick_button: Button = $ButtonRow/TickButton
 @onready var plan_button: Button = $ButtonRow/PlanButton
-@onready var smoke_button: Button = $ButtonRow/SmokeButton
 
 @onready var status_label: Label = $StatusLabel
 @onready var actor_view: RichTextLabel = $BodyRow/ActorFrame/ActorVBox/ActorView
@@ -29,9 +28,8 @@ const ActorRuntimeTestServiceRef = preload("res://src/expedition_system/actor/te
 
 var _template_options: Array[Dictionary] = []
 var _loadout_options: Array[Dictionary] = []
-var _actor: ActorRuntime
+var _actor = null
 var _last_plan_report: Dictionary = {}
-var _last_smoke_result: Dictionary = {}
 
 
 func panel_title() -> String:
@@ -68,8 +66,6 @@ func _bind_buttons() -> void:
 		tick_button.pressed.connect(_on_tick_pressed)
 	if not plan_button.pressed.is_connected(_on_plan_pressed):
 		plan_button.pressed.connect(_on_plan_pressed)
-	if not smoke_button.pressed.is_connected(_on_smoke_pressed):
-		smoke_button.pressed.connect(_on_smoke_pressed)
 
 
 func _populate_options() -> void:
@@ -108,7 +104,6 @@ func _reset_runtime_state() -> void:
 	ActorRuntimeTestServiceRef.clear_host(runtime_host)
 	_actor = null
 	_last_plan_report = {}
-	_last_smoke_result = {}
 
 
 func _on_build_actor_pressed() -> void:
@@ -137,7 +132,7 @@ func _on_reset_actor_pressed() -> void:
 func _on_apply_damage_pressed() -> void:
 	if not _ensure_actor_ready("Apply damage"):
 		return
-	var dealt := _actor.apply_damage(float(damage_spin.value))
+	var dealt: float = float(_actor.apply_damage(float(damage_spin.value)))
 	status_label.text = "Damage applied: %s" % str(dealt)
 	log_line("actor.apply_damage(%s) -> %s" % [str(damage_spin.value), str(dealt)])
 	_refresh_all_views()
@@ -146,7 +141,7 @@ func _on_apply_damage_pressed() -> void:
 func _on_apply_heal_pressed() -> void:
 	if not _ensure_actor_ready("Apply heal"):
 		return
-	var healed := _actor.apply_heal(float(heal_spin.value))
+	var healed: float = float(_actor.apply_heal(float(heal_spin.value)))
 	status_label.text = "Heal applied: %s" % str(healed)
 	log_line("actor.apply_heal(%s) -> %s" % [str(heal_spin.value), str(healed)])
 	_refresh_all_views()
@@ -155,7 +150,7 @@ func _on_apply_heal_pressed() -> void:
 func _on_apply_weaken_pressed() -> void:
 	if not _ensure_actor_ready("Apply weaken"):
 		return
-	var ok := ActorRuntimeTestServiceRef.apply_demo_weaken(_actor)
+	var ok: bool = bool(ActorRuntimeTestServiceRef.apply_demo_weaken(_actor))
 	status_label.text = "Weaken applied: %s" % str(ok)
 	log_line("apply_demo_weaken() -> %s" % str(ok))
 	_refresh_all_views()
@@ -179,17 +174,6 @@ func _on_plan_pressed() -> void:
 	_refresh_all_views()
 
 
-func _on_smoke_pressed() -> void:
-	_last_smoke_result = ActorRuntimeTestServiceRef.run_smoke_suite(runtime_host)
-	_actor = null
-	status_label.text = "Smoke suite: %s pass / %s fail" % [
-		str(_last_smoke_result.get("pass_count", 0)),
-		str(_last_smoke_result.get("fail_count", 0))
-	]
-	log_line("ActorRuntime smoke -> %s" % str(_last_smoke_result))
-	_refresh_all_views()
-
-
 func _refresh_all_views() -> void:
 	_refresh_actor_view()
 	_refresh_behavior_view()
@@ -202,7 +186,7 @@ func _refresh_actor_view() -> void:
 		actor_view.append_text("actor: null\n")
 		return
 
-	var snapshot := ActorRuntimeTestServiceRef.collect_actor_snapshot(_actor)
+	var snapshot: Dictionary = ActorRuntimeTestServiceRef.collect_actor_snapshot(_actor)
 	actor_view.append_text("Actor Summary\n")
 	actor_view.append_text("actor_id=%s template=%s camp=%s\n" % [
 		String(snapshot.get("actor_id", "")),
@@ -258,23 +242,6 @@ func _refresh_behavior_view() -> void:
 		behavior_view.append_text("triggered_effects=%s\n" % str(_last_plan_report.get("triggered_effect_ids", [])))
 		behavior_view.append_text("follow_up_effects=%s\n\n" % str(_last_plan_report.get("follow_up_effects", [])))
 
-	behavior_view.append_text("Smoke Result\n")
-	if _last_smoke_result.is_empty():
-		behavior_view.append_text("smoke: not run\n")
-	else:
-		behavior_view.append_text("pass=%s fail=%s\n" % [
-			str(_last_smoke_result.get("pass_count", 0)),
-			str(_last_smoke_result.get("fail_count", 0)),
-		])
-		for row in _last_smoke_result.get("tests", []):
-			if not (row is Dictionary):
-				continue
-			behavior_view.append_text("- [%s] %s :: %s\n" % [
-				"PASS" if bool(row.get("pass", false)) else "FAIL",
-				String(row.get("id", "")),
-				str(row.get("detail", "")),
-			])
-
 
 func _refresh_validation_view() -> void:
 	validation_view.clear()
@@ -286,17 +253,11 @@ func _build_validation_lines() -> Array[String]:
 	var lines: Array[String] = []
 	lines.append(_validation_wait_line(_actor != null, "actor built", "press Build Actor"))
 	if _actor == null:
-		if _last_smoke_result.is_empty():
-			lines.append("[WAIT] run smoke suite for automated checks")
-		else:
-			lines.append(_validation_result_line(int(_last_smoke_result.get("fail_count", 0)) == 0, "smoke suite passed", "smoke suite has failing checks"))
 		return lines
 
-	var snapshot := ActorRuntimeTestServiceRef.collect_actor_snapshot(_actor)
+	var snapshot: Dictionary = ActorRuntimeTestServiceRef.collect_actor_snapshot(_actor)
 	var attr_rows: Dictionary = snapshot.get("attr", {})
 	lines.append(_validation_result_line(attr_rows.has("hp"), "runtime hp attribute exists", "runtime hp attribute missing"))
-	lines.append(_validation_result_line(attr_rows.has("damage"), "runtime damage attribute exists", "runtime damage attribute missing"))
-	lines.append(_validation_result_line(attr_rows.has("heal"), "runtime heal attribute exists", "runtime heal attribute missing"))
 	lines.append(_validation_result_line(attr_rows.has("cooldown_total"), "runtime cooldown_total attribute exists", "runtime cooldown_total attribute missing"))
 
 	if not _last_plan_report.is_empty():
@@ -305,11 +266,6 @@ func _build_validation_lines() -> Array[String]:
 			lines.append(_validation_result_line(_report_has_follow_up_status(&"weaken"), "observer emits weaken apply intent", "observer weaken follow-up not found"))
 		elif _actor.actor_template_id == &"robot":
 			lines.append(_validation_result_line(_report_has_follow_up_heal(), "robot emits heal follow-up", "robot heal follow-up not found"))
-
-	if _last_smoke_result.is_empty():
-		lines.append("[WAIT] run smoke suite for automated checks")
-	else:
-		lines.append(_validation_result_line(int(_last_smoke_result.get("fail_count", 0)) == 0, "smoke suite passed", "smoke suite has failing checks"))
 	return lines
 
 

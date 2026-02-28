@@ -2,37 +2,29 @@ extends Node
 class_name ActorRuntime
 
 const ActorResultRef = preload("res://src/expedition_system/actor/ActorResult.gd")
-const AttributeRef = preload("res://src/attribute_framework/Attribute.gd")
-const RuntimeHpAttributeRef = preload("res://src/attribute_framework/RuntimeHpAttribute.gd")
-const RuntimeDamageAttributeRef = preload("res://src/attribute_framework/RuntimeDamageAttribute.gd")
-const RuntimeHealAttributeRef = preload("res://src/attribute_framework/RuntimeHealAttribute.gd")
-const RuntimeCooldownTotalAttributeRef = preload("res://src/attribute_framework/RuntimeCooldownTotalAttribute.gd")
 const PassiveExecutorRef = preload("res://src/expedition_system/actor/behavior/PassiveExecutor.gd")
-const STATUS_WEAKEN: StringName = &"weaken"
-
+const RuntimeHpAttributeRef = preload("res://src/attribute_framework/RuntimeHpAttribute.gd")
+const RuntimeCooldownTotalAttributeRef = preload("res://src/attribute_framework/RuntimeCooldownTotalAttribute.gd")
 signal hp_changed(actor_id: StringName, current_hp: float, max_hp: float)
 signal alive_changed(actor_id: StringName, alive: bool)
 signal cooldown_changed(actor_id: StringName, cooldown_remaining: float, cooldown_total: float)
 
 @onready var attribute_component: AttributeComponent = get_node_or_null("AttributeComponent")
 @onready var inventory_component = get_node_or_null("ActorInventoryComponent")
-@onready var visual_root: Node2D = get_node_or_null("VisualRoot")
-@onready var state_fx_root: Node2D = get_node_or_null("VisualRoot/StateFxRoot")
-@onready var ui_anchor: Marker2D = get_node_or_null("VisualRoot/UiAnchor")
 
 var actor_id: StringName = &""
 var camp: StringName = &""
 var member_id: StringName = &""
 var actor_template_id: StringName = &""
 
-var max_hp: float = 0.0
-var current_hp: float = 0.0
-var alive: bool = true
 var attr_set: AttributeSet
 
-# M2 placeholder fields for future CombatEngine loop.
-var cooldown_total: float = 1.0
+# Runtime countdown state belongs to ActorRuntime. The total value is derived from attributes.
 var cooldown_remaining: float = 0.0
+var _cached_max_hp: float = 0.0
+var _cached_current_hp: float = 0.0
+var _cached_cooldown_total: float = 1.0
+var _cached_alive: bool = true
 
 var ai_id: StringName = &""
 var action_ids: Array[StringName] = []
@@ -49,16 +41,6 @@ func _ready() -> void:
 	_sync_components_after_setup()
 
 
-static func from_entry(entry):
-	if entry == null:
-		return null
-
-	var rt = new()
-	if not rt.setup_from_entry(entry):
-		return null
-	return rt
-
-
 func setup_from_entry(entry) -> bool:
 	if entry == null:
 		return false
@@ -73,51 +55,68 @@ func setup_from_entry(entry) -> bool:
 	return true
 
 
+func can_act() -> bool:
+	return is_alive()
+
+
+func is_targetable() -> bool:
+	return is_alive()
+
+
 func is_usable() -> bool:
-	return alive and current_hp > 0.0
+	return can_act()
 
 
 func tick(delta: float) -> void:
 	if attr_set != null:
 		attr_set.run_process(delta)
 		_sync_runtime_state_from_attributes()
-	if not alive:
+	if not is_alive():
 		return
 	var before_cd: float = cooldown_remaining
 	cooldown_remaining = maxf(cooldown_remaining - maxf(delta, 0.0), 0.0)
 	if not is_equal_approx(before_cd, cooldown_remaining):
-		cooldown_changed.emit(actor_id, cooldown_remaining, cooldown_total)
+		cooldown_changed.emit(actor_id, cooldown_remaining, get_cooldown_total())
 
 
 func is_ready() -> bool:
-	return is_usable() and cooldown_remaining <= 0.0
+	return can_act() and cooldown_remaining <= 0.0
 
 
 func reset_cooldown() -> void:
-	cooldown_total = maxf(get_attr_value(&"cooldown_total", cooldown_total), 0.1)
+	var cooldown_total := get_cooldown_total()
 	cooldown_remaining = cooldown_total
 	cooldown_changed.emit(actor_id, cooldown_remaining, cooldown_total)
 
 
 func get_hp_ratio() -> float:
+	var max_hp := get_max_hp()
 	if max_hp <= 0.0:
 		return 0.0
-	return clampf(current_hp / max_hp, 0.0, 1.0)
+	return clampf(get_current_hp() / max_hp, 0.0, 1.0)
 
 
 func get_current_hp() -> float:
-	return current_hp
+	var hp_attr = _get_runtime_hp_attr()
+	if hp_attr != null:
+		return float(hp_attr.get_value())
+	return clampf(_cached_current_hp, 0.0, get_max_hp())
 
 
 func get_max_hp() -> float:
-	return max_hp
+	return maxf(get_attr_value(&"hp_max", _cached_max_hp), 0.0)
+
+
+func get_cooldown_total() -> float:
+	return maxf(get_attr_value(&"cooldown_total", _cached_cooldown_total), 0.1)
 
 
 func is_alive() -> bool:
-	return alive
+	return get_current_hp() > 0.0
 
 
 func set_cooldown_ratio(ratio: float) -> void:
+	var cooldown_total := get_cooldown_total()
 	cooldown_remaining = cooldown_total * clampf(ratio, 0.0, 1.0)
 	cooldown_changed.emit(actor_id, cooldown_remaining, cooldown_total)
 
@@ -130,13 +129,13 @@ func select_action_id() -> StringName:
 
 func select_attack_target(opponents: Array):
 	for target in opponents:
-		if target != null and target.is_usable():
+		if target != null and target.is_targetable():
 			return target
 	return null
 
 
 func build_turn_plan(opponents: Array, allies: Array) -> Dictionary:
-	if not is_usable():
+	if not can_act():
 		return {}
 
 	var target = select_attack_target(opponents)
@@ -144,12 +143,12 @@ func build_turn_plan(opponents: Array, allies: Array) -> Dictionary:
 		return {}
 
 	var action_id: StringName = select_action_id()
-	var attack_ctx := compute_attack_context(target)
+	var attack_payload := build_attack_payload(target)
 	var follow_up_effects := build_on_attack_effects(target, allies)
 	return {
 		"action_id": action_id,
 		"primary_target": target,
-		"attack_ctx": attack_ctx,
+		"attack_payload": attack_payload,
 		"follow_up_effects": follow_up_effects,
 	}
 
@@ -158,13 +157,6 @@ func get_attr_value(attr_name: StringName, fallback: float = 0.0) -> float:
 	var attr = find_attribute(attr_name)
 	if attr != null:
 		return float(attr.get_value())
-	if attr_set == null:
-		return fallback
-	var key := String(attr_name)
-	if attr_set.attributes_runtime_dict.has(key):
-		var attr2 = attr_set.attributes_runtime_dict[key]
-		if attr2 != null:
-			return float(attr2.get_value())
 	return fallback
 
 
@@ -172,13 +164,6 @@ func get_attr_base_value(attr_name: StringName, fallback: float = 0.0) -> float:
 	var attr = find_attribute(attr_name)
 	if attr != null:
 		return float(attr.get_base_value())
-	if attr_set == null:
-		return fallback
-	var key := String(attr_name)
-	if attr_set.attributes_runtime_dict.has(key):
-		var attr2 = attr_set.attributes_runtime_dict[key]
-		if attr2 != null:
-			return float(attr2.get_base_value())
 	return fallback
 
 
@@ -208,11 +193,9 @@ func has_named_buff(attr_name: StringName, buff_name: StringName) -> bool:
 
 
 func has_status(status_id: StringName) -> bool:
-	match status_id:
-		STATUS_WEAKEN:
-			return has_named_buff(&"dmg_out_mul", STATUS_WEAKEN)
-		_:
-			return false
+	if status_id == StringName() or attr_set == null:
+		return false
+	return _has_named_buff_anywhere(status_id)
 
 
 func get_tracked_status_snapshot() -> Dictionary:
@@ -236,118 +219,69 @@ func build_status_transition_events(before_snapshot: Dictionary, tick_index: int
 	return events
 
 
-func get_attribute_component() -> AttributeComponent:
-	return attribute_component
-
-
-func get_inventory_component() -> InventoryComponent:
-	return inventory_component
-
-
 func apply_heal(amount: float) -> float:
-	if amount <= 0.0 or not alive:
+	if amount <= 0.0 or not is_alive():
 		return 0.0
-	var before_hp: float = current_hp
 	var hp_attr = _get_runtime_hp_attr()
-	if hp_attr == null:
+	if hp_attr == null or not hp_attr.has_method("apply_heal_amount"):
 		push_error("ActorRuntime.apply_heal failed: missing runtime hp attribute | actor_id=%s" % String(actor_id))
 		return 0.0
-	hp_attr.add(amount)
+	var applied: float = hp_attr.apply_heal_amount(amount)
 	_sync_runtime_state_from_attributes()
-	return current_hp - before_hp
-
-
-func heal(amount: float) -> float:
-	return apply_heal(amount)
+	return applied
 
 
 func apply_damage(amount: float) -> float:
-	if amount <= 0.0 or not alive:
+	if amount <= 0.0 or not is_alive():
 		return 0.0
-	var before_hp: float = current_hp
 	var hp_attr = _get_runtime_hp_attr()
-	if hp_attr == null:
+	if hp_attr == null or not hp_attr.has_method("apply_damage_amount"):
 		push_error("ActorRuntime.apply_damage failed: missing runtime hp attribute | actor_id=%s" % String(actor_id))
 		return 0.0
-	hp_attr.sub(amount)
+	var applied: float = hp_attr.apply_damage_amount(amount)
 	_sync_runtime_state_from_attributes()
-	return before_hp - current_hp
+	return applied
 
 
-func take_damage(amount: float) -> float:
-	return apply_damage(amount)
-
-
-func resolve_heal_amount(raw_amount: float, incoming_multiplier: float = 1.0, temp_buffs: Array = []) -> float:
-	if raw_amount <= 0.0:
-		return 0.0
-	var heal_attr = _get_runtime_heal_attr()
-	if heal_attr == null:
-		push_error("ActorRuntime.resolve_heal_amount failed: missing runtime heal attribute | actor_id=%s" % String(actor_id))
-		return maxf(raw_amount, 0.0)
-	heal_attr.set_value(raw_amount)
-	heal_attr.mult(maxf(get_attr_value(&"heal_out_mul", 1.0), 0.0))
-	heal_attr.mult(maxf(incoming_multiplier, 0.0))
-	var applied_temp_buffs: Array = []
-	for buff in temp_buffs:
-		if not (buff is AttributeBuff):
-			continue
-		var applied_buff = heal_attr.add_buff(buff)
-		if applied_buff != null:
-			applied_temp_buffs.append(applied_buff)
-	var final_heal: float = maxf(heal_attr.get_value(), 0.0)
-	for buff in applied_temp_buffs:
-		heal_attr.remove_buff(buff)
-	heal_attr.set_value(0.0)
-	return final_heal
-
-
-func resolve_damage_amount(raw_amount: float, incoming_multiplier: float = 1.0, temp_buffs: Array = []) -> float:
-	if raw_amount <= 0.0:
-		return 0.0
-	var damage_attr = _get_runtime_damage_attr()
-	if damage_attr == null:
-		push_error("ActorRuntime.resolve_damage_amount failed: missing runtime damage attribute | actor_id=%s" % String(actor_id))
-		return maxf(raw_amount, 0.0)
-	damage_attr.set_value(raw_amount)
-	damage_attr.mult(maxf(get_attr_value(&"dmg_out_mul", 1.0), 0.0))
-	damage_attr.mult(maxf(incoming_multiplier, 0.0))
-	var applied_temp_buffs: Array = []
-	for buff in temp_buffs:
-		if not (buff is AttributeBuff):
-			continue
-		var applied_buff = damage_attr.add_buff(buff)
-		if applied_buff != null:
-			applied_temp_buffs.append(applied_buff)
-	var final_damage: float = maxf(damage_attr.get_value(), 0.0)
-	for buff in applied_temp_buffs:
-		damage_attr.remove_buff(buff)
-	damage_attr.set_value(0.0)
-	return final_damage
-
-
-func compute_attack_context(target) -> Dictionary:
+func build_attack_payload(target) -> Dictionary:
 	if target == null:
 		return {
-			"damage_pre_passive": 0.0,
-			"damage_final": 0.0,
+			"attack_power": 0.0,
+			"outgoing_multiplier": 1.0,
+			"damage_buffs": [],
 			"triggered_effect_ids": [],
 		}
-	var atk: float = get_attr_value(&"atk", 10.0)
-	var defense: float = target.get_attr_value(&"def", 0.0)
-	var dmg_in_mul: float = target.get_attr_value(&"dmg_in_mul", 1.0)
-
-	var raw_damage: float = maxf(atk - (defense * 0.5), 1.0)
 	var modifier_ctx: Dictionary = PassiveExecutorRef.build_attack_damage_modifiers(self, target)
 	var damage_buffs: Array = modifier_ctx.get("buffs", [])
 	var effect_ids: Array = modifier_ctx.get("effect_ids", [])
-	var damage_after_mul: float = resolve_damage_amount(raw_damage, dmg_in_mul, damage_buffs)
-
 	return {
-		"damage_pre_passive": raw_damage,
-		"damage_final": maxf(damage_after_mul, 1.0),
+		"attack_power": get_attr_value(&"atk", 10.0),
+		"outgoing_multiplier": get_attr_value(&"dmg_out_mul", 1.0),
+		"damage_buffs": damage_buffs,
 		"triggered_effect_ids": effect_ids,
 	}
+
+
+func resolve_attack_payload(attack_payload: Dictionary) -> Dictionary:
+	if attack_payload.is_empty():
+		return {
+			"raw_damage": 0.0,
+			"final_damage": 0.0,
+		}
+	var hp_attr = _get_runtime_hp_attr()
+	if hp_attr == null or not hp_attr.has_method("preview_attack_damage"):
+		push_error("ActorRuntime.resolve_attack_payload failed: missing runtime hp attribute | actor_id=%s" % String(actor_id))
+		return {
+			"raw_damage": 0.0,
+			"final_damage": 0.0,
+		}
+	return hp_attr.preview_attack_damage(
+		float(attack_payload.get("attack_power", 0.0)),
+		get_attr_value(&"def", 0.0),
+		float(attack_payload.get("outgoing_multiplier", 1.0)),
+		get_attr_value(&"dmg_in_mul", 1.0),
+		attack_payload.get("damage_buffs", [])
+	)
 
 
 func build_on_attack_effects(primary_target, allies: Array) -> Array[Dictionary]:
@@ -355,12 +289,12 @@ func build_on_attack_effects(primary_target, allies: Array) -> Array[Dictionary]
 
 
 func record_battle_start_state(spawn_index: int) -> void:
-	tags["hp_start"] = current_hp
+	tags["hp_start"] = get_current_hp()
 	tags["spawn_index"] = spawn_index
 
 
 func get_battle_start_hp() -> float:
-	return float(tags.get("hp_start", current_hp))
+	return float(tags.get("hp_start", get_current_hp()))
 
 
 func to_actor_result() -> RefCounted:
@@ -379,11 +313,12 @@ func to_dict() -> Dictionary:
 		"camp": camp,
 		"member_id": member_id,
 		"actor_template_id": actor_template_id,
-		"current_hp": current_hp,
-		"max_hp": max_hp,
-		"alive": alive,
+		"current_hp": get_current_hp(),
+		"max_hp": get_max_hp(),
+		"alive": is_alive(),
 		"has_attr_set": attr_set != null,
 		"cooldown_remaining": cooldown_remaining,
+		"cooldown_total": get_cooldown_total(),
 		"ai_id": ai_id,
 		"action_ids": action_ids.duplicate(),
 		"passive_ids": passive_ids.duplicate(),
@@ -402,18 +337,15 @@ func _apply_identity_from_entry(entry) -> void:
 
 func _apply_attribute_state_from_entry(entry) -> void:
 	attr_set = entry.base_attr_set.duplicate(true) if entry.base_attr_set != null else null
-	max_hp = maxf(get_attr_value(&"hp_max", float(entry.max_hp)), 0.0)
-	current_hp = clampf(float(entry.hp), 0.0, max_hp)
-	_ensure_runtime_hp_attribute(current_hp)
-	_ensure_runtime_damage_attribute(0.0)
-	_ensure_runtime_heal_attribute(0.0)
+	var initial_max_hp: float = maxf(get_attr_value(&"hp_max", float(entry.max_hp)), 0.0)
+	var initial_hp: float = clampf(float(entry.hp), 0.0, initial_max_hp)
+	_ensure_runtime_hp_attribute(initial_hp)
 	_ensure_runtime_cooldown_total_attribute()
 	_sync_runtime_state_from_attributes()
 
 
 func _apply_combat_state_from_entry() -> void:
-	cooldown_total = maxf(get_attr_value(&"cooldown_total", 1.0), 0.1)
-	cooldown_remaining = cooldown_total
+	cooldown_remaining = get_cooldown_total()
 
 
 func _apply_behavior_state_from_entry(entry) -> void:
@@ -431,27 +363,15 @@ func _apply_extra_state_from_entry(entry) -> void:
 	tags = entry.extra.duplicate(true)
 
 
-func _ensure_runtime_value_attribute(attribute_name: StringName, initial_value: float) -> void:
-	_ensure_runtime_value_attribute_with_script(attribute_name, initial_value, AttributeRef)
-
-
 func _ensure_runtime_hp_attribute(initial_value: float) -> void:
-	_ensure_runtime_value_attribute_with_script(&"hp", initial_value, RuntimeHpAttributeRef)
-
-
-func _ensure_runtime_damage_attribute(initial_value: float) -> void:
-	_ensure_runtime_value_attribute_with_script(&"damage", initial_value, RuntimeDamageAttributeRef)
-
-
-func _ensure_runtime_heal_attribute(initial_value: float) -> void:
-	_ensure_runtime_value_attribute_with_script(&"heal", initial_value, RuntimeHealAttributeRef)
+	_ensure_runtime_value_attribute_with_class(&"hp", initial_value, RuntimeHpAttributeRef)
 
 
 func _ensure_runtime_cooldown_total_attribute() -> void:
-	_ensure_runtime_value_attribute_with_script(&"cooldown_total", 0.0, RuntimeCooldownTotalAttributeRef)
+	_ensure_runtime_value_attribute_with_class(&"cooldown_total", 0.0, RuntimeCooldownTotalAttributeRef)
 
 
-func _ensure_runtime_value_attribute_with_script(attribute_name: StringName, initial_value: float, attribute_script) -> void:
+func _ensure_runtime_value_attribute_with_class(attribute_name: StringName, initial_value: float, attribute_class) -> void:
 	if attr_set == null:
 		return
 
@@ -463,7 +383,7 @@ func _ensure_runtime_value_attribute_with_script(attribute_name: StringName, ini
 			runtime_attr.set_value(initial_value)
 		return
 
-	var new_attr = attribute_script.new()
+	var new_attr: Attribute = attribute_class.new()
 	new_attr.attribute_name = key
 	new_attr.base_value = initial_value
 
@@ -479,12 +399,16 @@ func _get_runtime_hp_attr():
 	return _get_runtime_value_attr(&"hp")
 
 
-func _get_runtime_damage_attr():
-	return _get_runtime_value_attr(&"damage")
-
-
-func _get_runtime_heal_attr():
-	return _get_runtime_value_attr(&"heal")
+func _has_named_buff_anywhere(buff_name: StringName) -> bool:
+	if attr_set == null:
+		return false
+	var key := String(buff_name)
+	for attr in attr_set.attributes_runtime_dict.values():
+		if attr == null:
+			continue
+		if attr.find_buff(key) != null:
+			return true
+	return false
 
 
 func _get_runtime_value_attr(attribute_name: StringName):
@@ -497,26 +421,22 @@ func _get_runtime_value_attr(attribute_name: StringName):
 
 
 func _sync_runtime_state_from_attributes() -> void:
-	var prev_max_hp: float = max_hp
-	var prev_hp: float = current_hp
-	var prev_alive: bool = alive
-	var prev_cooldown_total: float = cooldown_total
+	var prev_max_hp: float = _cached_max_hp
+	var prev_hp: float = _cached_current_hp
+	var prev_alive: bool = _cached_alive
+	var prev_cooldown_total: float = _cached_cooldown_total
 	var prev_cooldown_remaining: float = cooldown_remaining
-	max_hp = maxf(get_attr_value(&"hp_max", max_hp), 0.0)
-	cooldown_total = maxf(get_attr_value(&"cooldown_total", cooldown_total), 0.1)
-	var hp_attr = _get_runtime_hp_attr()
-	if hp_attr != null:
-		current_hp = float(hp_attr.get_value())
-	else:
-		current_hp = clampf(current_hp, 0.0, max_hp)
-	cooldown_remaining = clampf(cooldown_remaining, 0.0, cooldown_total)
-	alive = current_hp > 0.0
-	if not is_equal_approx(prev_hp, current_hp) or not is_equal_approx(prev_max_hp, max_hp):
-		hp_changed.emit(actor_id, current_hp, max_hp)
-	if not is_equal_approx(prev_cooldown_total, cooldown_total) or not is_equal_approx(prev_cooldown_remaining, cooldown_remaining):
-		cooldown_changed.emit(actor_id, cooldown_remaining, cooldown_total)
-	if prev_alive != alive:
-		alive_changed.emit(actor_id, alive)
+	_cached_max_hp = get_max_hp()
+	_cached_current_hp = get_current_hp()
+	_cached_cooldown_total = get_cooldown_total()
+	cooldown_remaining = clampf(cooldown_remaining, 0.0, _cached_cooldown_total)
+	_cached_alive = _cached_current_hp > 0.0
+	if not is_equal_approx(prev_hp, _cached_current_hp) or not is_equal_approx(prev_max_hp, _cached_max_hp):
+		hp_changed.emit(actor_id, _cached_current_hp, _cached_max_hp)
+	if not is_equal_approx(prev_cooldown_total, _cached_cooldown_total) or not is_equal_approx(prev_cooldown_remaining, cooldown_remaining):
+		cooldown_changed.emit(actor_id, cooldown_remaining, _cached_cooldown_total)
+	if prev_alive != _cached_alive:
+		alive_changed.emit(actor_id, _cached_alive)
 
 
 func _sync_components_after_setup() -> void:

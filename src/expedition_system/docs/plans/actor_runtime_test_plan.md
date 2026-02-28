@@ -3,7 +3,6 @@
 ## 1. 目标
 
 先验证 `ActorRuntime` 本体，再验证它和战斗主链路的连接。
-
 当前优先检查：
 - 属性权威是否正确
 - 装备是否能通过 inventory 正确影响属性
@@ -19,41 +18,10 @@
 用途：
 - 快速构建单个 actor
 - 直接查看属性、buff、行为输出
-- 手动施加 damage / heal / weaken / tick
+- 手动施加 hp 伤害 / 治疗 / weaken / tick
 - 手动查看 `build_turn_plan()` 结果
 
-### MCP 自动回归
-
-- `scenes/devtest/actor_runtime_smoke.tscn`
-
-用途：
-- 无 UI 交互
-- 启动后直接跑固定 smoke suite
-- 输出结构化结果，便于 MCP 自动读取
-
-## 3. 当前 smoke case
-
-1. `hp_clamp`
-- 大量治疗后不会超过 `hp_max`
-- 大量受伤后会降到 `0`
-
-2. `equipment_apply`
-- 装备通过 `ActorInventoryComponent` 影响属性
-- 当前检查：
-  - `iron_sword`
-  - `wood_shield`
-
-3. `observer_weaken_intent`
-- 观者能生成 `weaken` 施加意图
-- 目标处于 `weaken` 时，额外伤害能进入伤害计算通道
-
-4. `robot_heal_intent`
-- 机器人能为受伤友方生成治疗类 follow-up effect
-
-5. `cooldown_total_derived`
-- `cooldown_total <- spd` 的派生关系正确工作
-
-## 4. 当前面板重点输出
+## 3. 当前面板重点输出
 
 ### Actor Snapshot
 
@@ -67,24 +35,22 @@
 - 当前 turn plan
 - damage 变化
 - follow-up effects
-- smoke suite 结果
 
 ### Validation Report
 
 - 只显示当前最关键的 `PASS / FAIL / WAIT`
 
-## 5. 约定
+## 4. 约定
 
 - 面板逻辑只做展示和触发
 - 真正测试逻辑统一放在：
   - `src/expedition_system/actor/test/ActorRuntimeTestService.gd`
-- smoke 场景与面板必须共用同一套 service，避免标准分叉
 
-## 6. 后续扩展建议
+## 5. 后续扩展建议
 
 后面可继续补充的 case：
 - `hp_max` 动态变化时，`RuntimeHpAttribute` 的自动 clamp
-- `damage` 通道的临时 buff 生效与清理
+- 作用在 `hp` 上的 damage operation 临时 buff 生效与清理
 - `tick()` 后状态过期与移除
 - 装备变化时旧 modifier 是否正确移除
 - `cooldown_total <- spd` 在更多来源修改下是否稳定更新

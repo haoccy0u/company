@@ -16,7 +16,7 @@ theme_override_font_sizes/font_size = 18
 [node name="TipsLabel" type="Label" parent="."]
 layout_mode = 2
 autowrap_mode = 2
-text = "Use this panel to verify ActorRuntime in isolation: attribute ownership, runtime buffs, equipment loadouts, turn plan output, and smoke checks."
+text = "Use this panel to verify ActorRuntime in isolation: attribute ownership, runtime buffs, equipment loadouts, and turn plan output."
 
 [node name="ConfigFrame" type="PanelContainer" parent="."]
 layout_mode = 2
@@ -138,10 +138,6 @@ text = "Tick"
 [node name="PlanButton" type="Button" parent="ButtonRow"]
 layout_mode = 2
 text = "Build Turn Plan"
-
-[node name="SmokeButton" type="Button" parent="ButtonRow"]
-layout_mode = 2
-text = "Run Smoke Suite"
 
 [node name="StatusLabel" type="Label" parent="."]
 layout_mode = 2

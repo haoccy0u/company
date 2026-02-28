@@ -492,7 +492,6 @@ func _build_config_from_ui() -> SquadConfig:
 	var squad := SquadConfigRef.new()
 	var squad_text := squad_id_edit.text.strip_edges()
 	squad.squad_id = StringName(squad_text if not squad_text.is_empty() else "test_squad")
-	squad.members = []
 
 	for i in range(_rows.size()):
 		var row: Dictionary = _rows[i]

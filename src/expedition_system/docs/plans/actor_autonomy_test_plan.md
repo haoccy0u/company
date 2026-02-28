@@ -27,16 +27,16 @@
 
 当前已下沉：
 - `build_on_attack_effects()`
-- `compute_attack_context()`
+- `build_attack_payload()`
+- `resolve_attack_payload()`
 - 被动 effect 的解析与执行入口
 
 ### C. 数值通道自治
 
 验证点：
 - 战斗内 HP 权威是运行时 `hp` 属性
-- 单次伤害通过运行时 `damage` 属性结算
-- 单次治疗通过运行时 `heal` 属性结算
-- `ActorRuntime.apply_damage()` / `apply_heal()` 不再直接做 `current_hp +/- amount`
+- 单次伤害 / 治疗通过 `RuntimeHpAttribute` 的 operation 入口结算
+- `ActorRuntime.apply_damage()` / `apply_heal()` 只组织事件，不直接做 `current_hp +/- amount`
 
 ### D. 状态语义自治
 
@@ -101,12 +101,12 @@
 ### Case 4：伤害通道验证
 
 目标：
-- 验证伤害先经过 `damage` 属性，再应用到 `hp`
+- 验证伤害先经过 `RuntimeHpAttribute` 的 operation 计算，再应用到 `hp`
 
 间接验证方式：
 - 战斗结果与当前预期一致
-- `ActorRuntime.apply_damage()` / `apply_heal()` 没有直接 `current_hp` 算术 fallback
-- `CombatEngine` 的伤害计算调用 `ActorRuntime.resolve_damage_amount()`
+- `ActorRuntime.apply_damage()` / `apply_heal()` 不直接执行 `current_hp` 算术
+- `CombatEngine` 的伤害 / 治疗结算最终落到 `hp`
 
 ## 5. 推荐代码边界检查
 
@@ -124,7 +124,8 @@
 - 有行动选择接口
 - 有攻击计算接口
 - 有攻击后效果意图生成接口
-- 有 `hp` / `damage` / `heal` 数值通道
+- 有 `hp` 与 `cooldown_total` 运行时属性
+- 有作用在 `hp` 上的 damage / heal operation 入口
 
 ## 6. 通过标准
 
@@ -147,4 +148,4 @@
 本轮新增重点：
 - `ActorRuntime.gd` 中不再直接按 `crush_joints / attack_heal_ally` 分支执行被动
 - 被动资源 `.tres` 中应存在 `effects` 定义
-- 伤害附加效果应通过运行时 `damage` 属性 + `AttributeBuff` 完成
+- 伤害附加效果应通过 `RuntimeHpAttribute` 的 operation 输入 + `AttributeBuff` 完成

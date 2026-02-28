@@ -1,90 +1,36 @@
-﻿# Attribute Framework
+# Attribute Framework
 
 ## 1. 目的
 
-`src/attribute_framework` 用于统一处理“属性值 + modifier / buff”的数值逻辑。
+`src/attribute_framework` 用来统一处理“属性值本身”和“作用在属性上的运算/效果”。
 
-在当前远征/战斗系统中的定位：
-- `ActorTemplate.base_attr_set`：角色基础属性模板（静态）
-- `ActorRuntime.attr_set`：战斗期属性实例（运行时）
-- `CombatEngine`：负责触发时机与目标选择，尽量复用属性框架完成数值变化
+它解决的是这类问题：
 
-## 2. 核心脚本职责
+- 一个属性的当前值怎么保存
+- 一个属性怎么被加减乘除或设置
+- 一个属性怎么挂 buff / debuff
+- 一个属性怎么依赖别的属性
+- 一组属性在运行时怎么一起更新
 
-### `AttributeSet.gd`
-- 持有一组 `Attribute`
-- 根据 `attributes` 构建运行时属性字典（`attributes_runtime_dict`）
-- 统一推进属性上的 buff 持续时间（`run_process(delta)`）
-- 提供 `find_attribute(name)` 查询入口
+它不负责这类问题：
+
+- 什么时候触发一次攻击
+- 攻击谁
+- 哪个队友会被治疗
+- 跨 Actor 的效果最终落到谁身上
+
+这些仍然属于行为层、战斗层或上层业务逻辑。
+
+## 2. 核心对象职责
 
 ### `Attribute.gd`
-- 单个属性（如 `hp_max`, `atk`, `dmg_out_mul`）
-- 管理 `base_value` / `computed_value`
-- 提供 `add/sub/mult/div/set_value` 等数值修改方法
-- 管理挂载在该属性上的 `AttributeBuff`
-- 提供“单个属性自定义计算方式”的接口：
-  - `custom_compute(operated_value, compute_params)`
-  - `derived_from()`
-  - `post_attribute_value_changed(value)`
 
-这 3 个接口的分工：
-- `derived_from()`
-  - 声明这个属性依赖哪些其它属性
-- `custom_compute(...)`
-  - 定义该属性在基础运算之后，如何结合依赖属性重新计算
-- `post_attribute_value_changed(...)`
-  - 定义最终值的后处理逻辑，例如 clamp、下限保护、格式化修正
+表示“一个属性值”。
 
-### `AttributeModifier.gd`
-- 描述单次数值运算（加减乘除、设置）
-- 是 `Attribute` / `AttributeBuff` 的底层运算单元
+适合用它表示：
 
-### `AttributeBuff.gd`
-- 持续或永久的属性效果（buff/debuff）
-- 支持：
-  - 运算类型（ADD/SUB/MULT/DIVIDE/SET）
-  - 持续时间
-  - 同名 buff 合并策略
-- 可作为模板重复使用（内部会复制）
-
-### `AttributeBuffDOT.gd`
-- 周期性 buff（DOT/HOT 的基础）
-- 当前远征战斗未正式接入，但可用于后续扩展
-
-### `AttributeComponent.gd`
-- `Node` 包装，用于场景节点上驱动 `AttributeSet.run_process(delta)`
-- 当前 `CombatEngine` 主要仍直接驱动 `ActorRuntime.attr_set`，未强依赖此组件
-
-## 3. 当前在战斗系统中的用法（已落地）
-
-- 角色模板基础属性来自 `ActorTemplate.base_attr_set`
-- 战斗开始时复制为 `ActorRuntime.attr_set`
-- `ActorRuntime` 运行期注入通用属性：
-  - `hp`
-  - `damage`
-  - `heal`
-  - `cooldown_total`
-- `CombatEngine` 读取属性：
-  - `hp_max`
-  - `atk`
-  - `def`
-  - `spd`
-  - `dmg_out_mul`
-  - `dmg_in_mul`
-  - `heal_out_mul`
-  - `heal_in_mul`
-- `ActorRuntime.apply_heal()` / `apply_damage()` 通过 `Attribute` 方法改值，不再直接对 `current_hp` 做算术修改
-- `ActorRuntime` 当前还会创建运行时 `damage` 属性，用作单次伤害结算通道
-- `weaken` 状态通过 `AttributeBuff` 挂载到 `dmg_out_mul`
-
-## 4. 使用约定（建议保持一致）
-
-推荐属性名：
 - `hp_max`
-- `hp`（运行期注入）
-- `damage`（运行期注入）
-- `heal`（运行期注入）
-- `cooldown_total`（运行期注入）
+- `hp`
 - `atk`
 - `def`
 - `spd`
@@ -93,76 +39,262 @@
 - `heal_out_mul`
 - `heal_in_mul`
 
-## 5. 战斗层与属性框架的职责边界
+它负责：
 
-`CombatEngine` 负责：
-- 触发时机（攻击命中、行动结束等）
-- 目标选择（敌方、友方、最低血量等）
-- 调用属性框架读取/修改数值
-- 战斗规则裁决与日志输出
+- 保存 `base_value`
+- 保存运行时 `computed_value`
+- 提供 `set/add/sub/mult/div`
+- 挂载 `AttributeBuff`
+- 定义派生关系
+- 定义最终值后处理
 
-属性框架负责：
-- buff 持续时间推进
-- buff 合并规则
-- 属性最终值计算
-- 基础数值运算入口（`add/sub/mult/...`）
+如果一个东西本质上是“角色当前拥有的一条数值状态”，优先考虑用 `Attribute`。
 
-进一步约定：
-- 只要某段逻辑属于“单个角色内部的数值关系”，优先考虑放进 `Attribute` 子类
-- 只要某段逻辑依赖“触发时机 / 目标选择 / 跨角色影响”，应保留在行为层或 `CombatEngine`
+### `AttributeModifier.gd`
 
-当前划分示例：
-- 适合属性框架：
-  - `hp` 对 `hp_max` 的钳制
-  - `damage` 作为单次伤害通道的最终数值处理
-  - 未来的 `cooldown_total <- spd` 派生关系
-- 不适合属性框架：
-  - 攻击时选择哪个敌人
-  - 攻击后给谁治疗
-  - 什么时候触发被动
-  - 跨 Actor 的效果真正落地
+表示“一次数值运算”。
 
-## 6. 当前已下沉的通用属性优化
+它不是状态，也不是属性，只是一次操作描述。
 
-### `RuntimeHpAttribute.gd`
-- 运行时 `hp` 不再只是一条普通属性
-- 现在由 `RuntimeHpAttribute` 负责：
-  - 依赖 `hp_max`
-  - 在 `post_attribute_value_changed()` 中统一钳制到 `0..hp_max`
+适合用它表示：
 
-这意味着：
-- `ActorRuntime.apply_heal()` / `apply_damage()` 不再手动对 `hp` 做 clamp
-- `ActorRuntime.current_hp` 只是运行时 `hp` 的镜像输出，不再是权威来源
+- `+10`
+- `-5`
+- `x1.2`
+- `/2`
+- `set 100`
 
-### `RuntimeDamageAttribute.gd`
-- 运行时 `damage` 通道属性
-- 负责把单次伤害结算值约束为非负
+它适合的场景：
 
-### `RuntimeHealAttribute.gd`
-- 运行时 `heal` 通道属性
-- 负责把单次治疗结算值约束为非负
+- 需要描述一次明确的运算
+- 需要把“操作类型”和“操作值”分开保存
 
-### `RuntimeCooldownTotalAttribute.gd`
-- 运行时 `cooldown_total` 属性
-- 依赖 `spd`
-- 统一计算：
-  - `cooldown_total = 1 / max(spd, 0.1)`
-- actor 不再直接手算这条关系
+如果只是一次加减乘除，不需要新建一个 Attribute，优先考虑 `AttributeModifier`。
 
-## 7. 推荐后续优化顺序
+### `AttributeBuff.gd`
 
-1. `hp`
-   - 已完成：钳制逻辑下沉到自定义属性类
-2. `damage`
-   - 已完成：收口为运行时通道属性
-3. `cooldown_total`
-   - 已完成：作为 `spd` 的派生属性
-4. `heal`
-   - 已完成：补齐与 `damage` 对称的临时属性通道
+表示“挂在某个 Attribute 上的持续效果”。
 
-## 8. 当前已知改进方向
+它本质上是：
 
-1. 继续把更多单角色数值关系收进自定义属性类
-2. 把更多被动效果参数化并通过 `AttributeBuff` 资源驱动
-3. 继续减少 `CombatEngine` 中的硬编码数值常量
-4. 在测试资源层重新设计观者 / 机器人，验证新的通用属性通道
+- 一个 `AttributeModifier`
+- 再加上持续时间、合并规则、名字等运行时信息
+
+适合用它表示：
+
+- 攻击力 +10，持续 5 秒
+- 受到伤害 x1.2，持续 2 秒
+- 防御力 -3，直到战斗结束
+
+如果一个效果要“附着在属性上，并持续一段时间或直到移除”，优先考虑 `AttributeBuff`。
+
+### `AttributeBuffDOT.gd`
+
+表示“周期触发的 buff”。
+
+它是 `AttributeBuff` 的特殊形式，适合：
+
+- 每秒掉血
+- 每 0.5 秒回血
+- 每隔一段时间重复触发一次属性变化
+
+如果效果不是持续改变最终值，而是“按周期反复触发”，优先考虑 `AttributeBuffDOT`。
+
+### `AttributeSet.gd`
+
+表示“一组属性的运行时容器”。
+
+它负责：
+
+- 持有多个 `Attribute`
+- 建立属性名到运行时属性的映射
+- 建立派生依赖关系
+- 推进所有属性上的 buff 时间
+
+如果要管理一个角色整套运行时属性，用 `AttributeSet`。
+
+### `AttributeComponent.gd`
+
+表示“场景树里的 Node 包装”。
+
+它本身不新增数值能力，只是为了：
+
+- 让场景节点能挂一个 `AttributeSet`
+- 在 `_physics_process` 里调用 `attribute_set.run_process(delta)`
+
+如果已经有上层统一调度器手动推进 `AttributeSet`，就不一定非要依赖 `AttributeComponent`。
+
+## 3. 什么时候用什么
+
+这是当前最重要的选择规则。
+
+### 情况 A：我要表示一个角色真正拥有的数值
+
+用 `Attribute`。
+
+例如：
+
+- 最大生命
+- 当前生命
+- 攻击力
+- 防御力
+- 速度
+- 伤害倍率
+
+判断标准：
+
+- 它是一个“状态值”
+- 它会被读取
+- 它会在一段时间内持续存在
+
+### 情况 B：我要做一次简单运算
+
+用 `AttributeModifier`。
+
+例如：
+
+- 把 hp 减 10
+- 把 atk 加 5
+- 把伤害倍率乘 1.2
+
+判断标准：
+
+- 只是一次操作
+- 不需要持续附着
+- 不需要自己维护生命周期
+
+### 情况 C：我要做一个持续效果
+
+用 `AttributeBuff`。
+
+例如：
+
+- 中毒期间每次最终伤害增加 20%
+- 虚弱期间输出倍率变成 70%
+- 3 秒内攻击力 +5
+
+判断标准：
+
+- 它要持续存在
+- 它作用在某个 Attribute 上
+- 它需要时长、命名或合并规则
+
+### 情况 D：我要做周期效果
+
+用 `AttributeBuffDOT`。
+
+例如：
+
+- 每秒扣血
+- 每秒回血
+
+判断标准：
+
+- 不是单纯“最终值一直变”
+- 而是“每隔一段时间触发一次”
+
+### 情况 E：一个属性取决于别的属性
+
+用 `Attribute` 子类，重写：
+
+- `derived_from()`
+- `custom_compute()`
+- 必要时 `post_attribute_value_changed()`
+
+例如：
+
+- `hp` 依赖 `hp_max` 做 clamp
+- `cooldown_total` 依赖 `spd`
+
+判断标准：
+
+- 这是单角色内部的数值关系
+- 不是一次行为事件
+- 也不是跨角色逻辑
+
+### 情况 F：我要管理一个角色整套属性
+
+用 `AttributeSet`。
+
+如果这个角色还在场景树中，并且需要节点自动推进，再外面包一层 `AttributeComponent`。
+
+## 4. 明确不要这样用
+
+### 不要把行为规则写进属性框架
+
+这些不该放进 `attribute_framework`：
+
+- 目标选择
+- 技能选择
+- 触发时机判断
+- 敌我判定
+- 跨 Actor 的最终落地
+
+这些应该在行为层或战斗层处理。
+
+### 不要把一次事件误建模成独立属性
+
+例如：
+
+- `damage`
+- `heal`
+
+如果它们本质上只是“对 `hp` 的一次修改请求”，那更适合建模成：
+
+- 一次 `AttributeModifier`
+- 或一组作用在 `hp` 上的计算输入
+
+而不是长期存在的并列属性。
+
+### 不要在业务层重复实现数值解算
+
+如果一段逻辑本质上是：
+
+- clamp
+- 派生
+- buff 运算
+- modifier 运算
+- 单属性最终值计算
+
+那应优先放进 `attribute_framework`，不要在 `ActorRuntime`、`CombatEngine` 或别的业务脚本里再手写一遍。
+
+## 5. 当前远征系统接入建议
+
+按当前远征/战斗系统，建议这样使用：
+
+- `ActorTemplate.base_attr_set`
+  - 放静态基础属性模板
+
+- `ActorRuntime.attr_set`
+  - 放战斗中的运行时属性实例
+
+- `RuntimeHpAttribute`
+  - 继续保留
+  - 因为 `hp` 是真实运行时属性，且需要依赖 `hp_max`
+
+- `RuntimeCooldownTotalAttribute`
+  - 继续保留
+  - 因为它是典型的单角色内部派生关系
+
+- `damage / heal`
+  - 不应长期作为和 `hp` 并列的真实属性来扩展业务语义
+  - 更适合被整理成“作用在 `hp` 上的 modifier / operation 输入”
+
+## 6. 简单判断表
+
+- 要表示“一个长期存在的数值状态”：用 `Attribute`
+- 要表示“一次加减乘除/设置”：用 `AttributeModifier`
+- 要表示“持续附着效果”：用 `AttributeBuff`
+- 要表示“周期触发效果”：用 `AttributeBuffDOT`
+- 要表示“属性之间的派生关系”：用 `Attribute` 子类
+- 要管理“整套运行时属性”：用 `AttributeSet`
+- 要在场景树里自动驱动：用 `AttributeComponent`
+
+## 7. 当前文档结论
+
+对这个框架，后续最重要的约束是：
+
+- 业务层负责组织事件
+- 属性框架负责处理属性计算
+- 不要把事件语义误写成属性
+- 不要把属性计算重新写回业务脚本

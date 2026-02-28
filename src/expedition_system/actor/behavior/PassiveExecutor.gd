@@ -75,6 +75,8 @@ static func _build_status_apply_row(actor, primary_target, effect) -> Dictionary
 	var buff = _duplicate_buff_template(effect.buff)
 	if buff == null:
 		return {}
+	if effect.status_id != StringName() and buff.buff_name.is_empty():
+		buff.buff_name = String(effect.status_id)
 	return {
 		"type": &"status_apply",
 		"target": primary_target,
@@ -99,8 +101,20 @@ static func _build_heal_row(actor, allies: Array, effect) -> Dictionary:
 	var heal_scale_attr: StringName = StringName(str(params.get("heal_scale_attr", "atk")))
 	var heal_scale_ratio: float = float(params.get("heal_scale_ratio", 0.2))
 	var scale_value: float = actor.get_attr_value(heal_scale_attr, 0.0)
-	var raw_heal: float = maxf(heal_flat + scale_value * heal_scale_ratio, 0.0)
-	var heal_amount: float = maxf(actor.resolve_heal_amount(raw_heal, ally.get_attr_value(&"heal_in_mul", 1.0)), 1.0)
+	var hp_attr = ally.find_attribute(&"hp") if ally != null else null
+	if hp_attr == null or not hp_attr.has_method("preview_scaled_heal"):
+		var actor_label := String(actor.actor_id) if actor != null else "unknown"
+		push_error("PassiveExecutor._build_heal_row failed: missing runtime hp attribute | actor_id=%s" % actor_label)
+		return {}
+	var heal_amount: float = hp_attr.preview_scaled_heal(
+		heal_flat,
+		scale_value,
+		heal_scale_ratio,
+		actor.get_attr_value(&"heal_out_mul", 1.0),
+		ally.get_attr_value(&"heal_in_mul", 1.0),
+		[],
+		1.0
+	)
 	return {
 		"type": &"heal",
 		"target": ally,
@@ -118,7 +132,7 @@ static func _select_heal_target(allies: Array, heal_rule: StringName):
 	var best = null
 	var best_ratio: float = 2.0
 	for ally in allies:
-		if ally == null or not ally.is_usable():
+		if ally == null or not ally.is_targetable():
 			continue
 		var ratio: float = ally.get_hp_ratio()
 		if ratio < best_ratio:

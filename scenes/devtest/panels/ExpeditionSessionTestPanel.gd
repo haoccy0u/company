@@ -306,7 +306,6 @@ func _parse_enemy_groups(text: String) -> Array[StringName]:
 func _build_demo_squad_runtime() -> SquadRuntime:
 	var squad_cfg := SquadConfigRef.new()
 	squad_cfg.squad_id = &"demo_squad"
-	squad_cfg.members = []
 
 	var warrior_template := _make_template(&"warrior", 140.0, [&"slash"], [&"tough_skin"], &"basic_auto")
 	var medic_template := _make_template(&"medic", 90.0, [&"heal"], [&"triage"], &"basic_auto")

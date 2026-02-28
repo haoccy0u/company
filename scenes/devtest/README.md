@@ -17,11 +17,7 @@
 
 - `panels/ActorRuntimeTestPanel.tscn`
   - 单 actor 本体测试
-  - 直接验证属性、装备、buff、行为输出与 smoke 结果
-
-- `actor_runtime_smoke.tscn`
-  - 无 UI 的 ActorRuntime smoke runner
-  - 供 Godot MCP 启动并读取结构化测试结果
+  - 直接验证属性、装备、buff、行为输出
 
 ## 约定
 
@@ -30,7 +26,7 @@
 - 如需临时调试控件，优先放在 `devtest`
 - `ActorRuntime` 相关测试应优先复用：
   - `src/expedition_system/actor/test/ActorRuntimeTestService.gd`
-  - 手动面板与 smoke 场景必须共用同一套测试逻辑
+  - 手动面板与测试辅助方法应共用同一套测试逻辑
 
 ## 当前重点回归
 
