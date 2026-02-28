@@ -1,20 +1,20 @@
 extends TestPanelBase
 class_name ExpeditionSessionTestPanel
 
-const ActorTemplateRef = preload("res://src/expedition_system/actor/ActorTemplate.gd")
-const AttributeSetRef = preload("res://src/attribute_framework/AttributeSet.gd")
-const AttributeRef = preload("res://src/attribute_framework/Attribute.gd")
 const MemberConfigRef = preload("res://src/expedition_system/squad/MemberConfig.gd")
 const SquadConfigRef = preload("res://src/expedition_system/squad/SquadConfig.gd")
 const SquadRuntimeFactoryRef = preload("res://src/expedition_system/squad/SquadRuntimeFactory.gd")
 
 const ExpeditionLocationDefRef = preload("res://src/expedition_system/expedition/ExpeditionLocationDef.gd")
 const ExpeditionSessionRef = preload("res://src/expedition_system/expedition/ExpeditionSession.gd")
-const BattleBuilderRef = preload("res://src/expedition_system/battle/BattleBuilder.gd")
-const BattleSessionRef = preload("res://src/expedition_system/battle/BattleSession.gd")
+const ExpeditionEventRouterRef = preload("res://src/expedition_system/expedition/handler/ExpeditionEventRouter.gd")
+const RestEventDefRef = preload("res://src/expedition_system/expedition/RestEventDef.gd")
 const ResultApplierRef = preload("res://src/expedition_system/battle/ResultApplier.gd")
 
 const CTX_SQUAD_RUNTIME: StringName = &"expedition.squad_runtime"
+const DEFAULT_SQUAD_SOURCE: String = "resource_default"
+const DEFAULT_OBSERVER_TEMPLATE_ID: StringName = &"observer"
+const DEFAULT_ROBOT_TEMPLATE_ID: StringName = &"robot"
 const HP_POLICY_IDS: Array[StringName] = [
 	ResultApplierRef.CARRY_OVER_HP_POLICY_ID,
 	ResultApplierRef.RESET_FULL_HP_POLICY_ID,
@@ -25,8 +25,7 @@ const HP_POLICY_LABELS: Array[String] = [
 ]
 
 @onready var location_id_edit: LineEdit = $ConfigFrame/ConfigVBox/LocationRow/LocationIdEdit
-@onready var enemy_groups_edit: LineEdit = $ConfigFrame/ConfigVBox/EnemyGroupsRow/EnemyGroupsEdit
-@onready var allow_non_combat_stub_check: CheckBox = $ConfigFrame/ConfigVBox/OptionsRow/AllowNonCombatStubCheck
+@onready var event_sequence_edit: LineEdit = $ConfigFrame/ConfigVBox/EventSequenceRow/EventSequenceEdit
 @onready var hp_policy_option: OptionButton = $ConfigFrame/ConfigVBox/HpPolicyRow/HpPolicyOption
 
 @onready var build_session_button: Button = $ButtonRow/BuildSessionButton
@@ -62,7 +61,7 @@ func _ready() -> void:
 	_reset_runtime_state()
 	_refresh_checkpoint_view()
 	_refresh_squad_state_view()
-	_set_result_text("Build Session -> Advance -> Build BattleStart / Resolve Combat.\n")
+	_set_result_text(_default_result_hint())
 
 
 func on_panel_activated() -> void:
@@ -88,8 +87,7 @@ func _bind_buttons() -> void:
 
 func _reset_ui_defaults() -> void:
 	location_id_edit.text = "forest_outpost"
-	enemy_groups_edit.text = "wolves,bandits"
-	allow_non_combat_stub_check.button_pressed = false
+	event_sequence_edit.text = "combat:training_dummy,rest"
 	if hp_policy_option.item_count > 0:
 		hp_policy_option.select(0)
 	status_label.text = "Ready"
@@ -99,7 +97,7 @@ func _reset_runtime_state() -> void:
 	_session = null
 	_location = null
 	_squad_runtime = null
-	_squad_source = "demo"
+	_squad_source = DEFAULT_SQUAD_SOURCE
 	_last_battle_start = null
 	_last_battle_result = null
 	_pre_battle_member_hp = {}
@@ -108,9 +106,9 @@ func _reset_runtime_state() -> void:
 func _on_build_session_pressed() -> void:
 	_squad_runtime = _resolve_squad_runtime_for_test()
 	if _squad_runtime == null:
-		status_label.text = "Build demo squad failed"
-		_append_result("Failed to build SquadRuntime (context/demo).\n")
-		log_line("Failed to build SquadRuntime from context or demo.")
+		status_label.text = "Build test squad failed"
+		_append_result("Failed to build SquadRuntime (context/default).\n")
+		log_line("Failed to build SquadRuntime from context or resource default squad.")
 		return
 
 	_location = _build_location_from_ui()
@@ -159,21 +157,15 @@ func _on_build_battle_start_pressed() -> void:
 		log_line("Build BattleStart skipped: no current event.")
 		_show_state()
 		return
-	if not (_session.current_event is CombatEventDef):
-		status_label.text = "Current event is not combat"
-		log_line("Build BattleStart skipped: current event is not CombatEventDef.")
-		_show_state()
-		return
 	if _squad_runtime == null:
 		status_label.text = "Squad runtime is null"
 		log_line("Build BattleStart skipped: squad runtime is null.")
 		return
 
-	var combat_event := _session.current_event as CombatEventDef
-	_last_battle_start = BattleBuilderRef.from_combat_event(combat_event, _squad_runtime)
+	_last_battle_start = ExpeditionEventRouterRef.build_battle_start(_session.current_event, _squad_runtime)
 	if _last_battle_start == null:
-		status_label.text = "Build BattleStart failed"
-		log_line("BattleBuilder.from_combat_event() -> null")
+		status_label.text = "Current event has no battle start"
+		log_line("Build BattleStart skipped: current event does not build a battle start.")
 		return
 
 	_apply_selected_hp_policy_to_battle_start(_last_battle_start)
@@ -209,50 +201,57 @@ func _on_resolve_combat_stub_pressed() -> void:
 		log_line("Resolve combat skipped: no current event.")
 		_show_state()
 		return
-	if not (_session.current_event is CombatEventDef):
-		status_label.text = "Current event is not combat"
-		log_line("Resolve combat skipped: current event is not CombatEventDef.")
-		_show_state()
-		return
 	if _squad_runtime == null:
 		status_label.text = "Squad runtime is null"
 		log_line("Resolve combat skipped: squad runtime is null.")
 		return
 
-	var battle_session := BattleSessionRef.new()
-	var combat_event := _session.current_event as CombatEventDef
-	_last_battle_start = BattleBuilderRef.from_combat_event(combat_event, _squad_runtime)
-	if _last_battle_start == null:
-		status_label.text = "Build BattleStart failed"
-		log_line("Resolve combat skipped: BattleBuilder returned null.")
-		return
-	_apply_selected_hp_policy_to_battle_start(_last_battle_start)
-	_capture_pre_battle_snapshot()
-	var result := battle_session.run_stub_from_combat_event(combat_event, _squad_runtime)
-	if result == null:
-		status_label.text = "Stub battle failed"
-		log_line("run_stub_from_combat_event() -> null")
+	_last_battle_start = ExpeditionEventRouterRef.build_battle_start(_session.current_event, _squad_runtime)
+	if _last_battle_start != null:
+		_apply_selected_hp_policy_to_battle_start(_last_battle_start)
+		_capture_pre_battle_snapshot()
+
+	var outcome: Dictionary = ExpeditionEventRouterRef.resolve_stub(_session.current_event, _squad_runtime)
+	if outcome.is_empty():
+		status_label.text = "Resolve event failed"
+		log_line("Resolve event failed: no handler or empty outcome.")
 		return
 
-	_last_battle_result = result
+	var result = outcome.get("battle_result", null)
+	_last_battle_result = result if result is BattleResult else null
 	var hp_policy_id: StringName = _get_current_hp_policy_id()
-	var apply_ok: bool = ResultApplierRef.apply_stub_result_to_squad_runtime(result, _squad_runtime, hp_policy_id)
-	if not apply_ok:
-		status_label.text = "Apply battle result failed"
-		log_line("Resolve combat failed: ResultApplier.apply_stub_result_to_squad_runtime() returned false.")
-		return
+	if _last_battle_result != null:
+		var apply_ok: bool = ResultApplierRef.apply_stub_result_to_squad_runtime(_last_battle_result, _squad_runtime, hp_policy_id)
+		if not apply_ok:
+			status_label.text = "Apply battle result failed"
+			log_line("Resolve event failed: ResultApplier returned false.")
+			return
 
-	if _squad_source == "hub_context":
-		# Keep shared context synchronized for subsequent panels/tests.
-		ctx_set(CTX_SQUAD_RUNTIME, _squad_runtime.duplicate(true))
+		if _squad_source == "hub_context":
+			ctx_set(CTX_SQUAD_RUNTIME, _squad_runtime.duplicate(true))
 
-	var completed: bool = _session.complete_current_event()
-	status_label.text = "Combat stub resolved (%s), complete=%s" % [String(result.ended_reason), str(completed)]
-	log_line("combat resolved -> policy=%s %s complete=%s" % [
-		String(hp_policy_id),
-		_battle_result_summary(),
-		str(completed)
-	])
+	var completed: bool = false
+	if bool(outcome.get("completed", false)):
+		completed = _session.complete_current_event()
+
+	if _last_battle_result != null:
+		status_label.text = "Combat stub resolved (%s), complete=%s" % [String(_last_battle_result.ended_reason), str(completed)]
+		log_line("combat resolved -> policy=%s %s complete=%s" % [
+			String(hp_policy_id),
+			_battle_result_summary(),
+			str(completed)
+		])
+	else:
+		var event_type: StringName = outcome.get("event_type", _session.get_current_event_type())
+		var healed_members: Array[StringName] = outcome.get("healed_members", [])
+		var heal_amount: float = float(outcome.get("heal_amount", 0.0))
+		status_label.text = "Event resolved (%s), complete=%s" % [String(event_type), str(completed)]
+		log_line("event resolved -> type=%s heal=%s healed=[%s] complete=%s" % [
+			String(event_type),
+			str(heal_amount),
+			_join_string_names(healed_members),
+			str(completed)
+		])
 	_show_state()
 	_refresh_checkpoint_view()
 	_refresh_squad_state_view()
@@ -277,8 +276,12 @@ func _on_reset_pressed() -> void:
 	_reset_runtime_state()
 	_refresh_checkpoint_view()
 	_refresh_squad_state_view()
-	_set_result_text("Build Session -> Advance -> Build BattleStart / Resolve Combat.\n")
+	_set_result_text(_default_result_hint())
 	log_line("ExpeditionSessionTestPanel reset.")
+
+
+func _default_result_hint() -> String:
+	return "Build Session -> Advance -> Resolve Event.\nUse Resolve Event to execute combat or rest.\nUse Skip Event only when you intentionally want to consume the current event without applying its effect.\nDefault squad: observer + robot from resources.\n"
 
 
 func _build_location_from_ui() -> ExpeditionLocationDef:
@@ -288,77 +291,42 @@ func _build_location_from_ui() -> ExpeditionLocationDef:
 
 	var location := ExpeditionLocationDefRef.new()
 	location.location_id = StringName(location_id_text)
-	location.allow_non_combat_stub = allow_non_combat_stub_check.button_pressed
-	location.combat_enemy_groups = _parse_enemy_groups(enemy_groups_edit.text)
+	location.event_sequence = _parse_event_sequence(event_sequence_edit.text)
 	return location
 
 
-func _parse_enemy_groups(text: String) -> Array[StringName]:
-	var groups: Array[StringName] = []
+func _parse_event_sequence(text: String) -> PackedStringArray:
+	var sequence: PackedStringArray = []
 	for raw_part in text.split(","):
 		var part := raw_part.strip_edges()
 		if part.is_empty():
 			continue
-		groups.append(StringName(part))
-	return groups
+		sequence.append(part)
+	return sequence
 
 
-func _build_demo_squad_runtime() -> SquadRuntime:
+func _build_default_squad_runtime() -> SquadRuntime:
 	var squad_cfg := SquadConfigRef.new()
-	squad_cfg.squad_id = &"demo_squad"
+	squad_cfg.squad_id = &"default_resource_squad"
 
-	var warrior_template := _make_template(&"warrior", 140.0, [&"slash"], [&"tough_skin"], &"basic_auto")
-	var medic_template := _make_template(&"medic", 90.0, [&"heal"], [&"triage"], &"basic_auto")
+	var observer_equipment_ids: Array[StringName] = [&"iron_sword"]
+	var robot_equipment_ids: Array[StringName] = [&"wood_shield"]
 
-	var m1 := MemberConfigRef.new()
-	m1.member_id = &"m_1"
-	m1.actor_template_id = warrior_template.template_id
-	m1.actor_template = warrior_template
-	m1.equipment_ids = [&"iron_sword"]
-	m1.init_hp = -1.0
-	squad_cfg.members.append(m1)
+	var observer_member := MemberConfigRef.new()
+	observer_member.member_id = &"observer_member"
+	observer_member.actor_template_id = DEFAULT_OBSERVER_TEMPLATE_ID
+	observer_member.equipment_ids = observer_equipment_ids
+	observer_member.init_hp = -1.0
+	squad_cfg.members.append(observer_member)
 
-	var m2 := MemberConfigRef.new()
-	m2.member_id = &"m_2"
-	m2.actor_template_id = medic_template.template_id
-	m2.actor_template = medic_template
-	m2.equipment_ids = [&"wood_shield"]
-	m2.init_hp = -1.0
-	squad_cfg.members.append(m2)
+	var robot_member := MemberConfigRef.new()
+	robot_member.member_id = &"robot_member"
+	robot_member.actor_template_id = DEFAULT_ROBOT_TEMPLATE_ID
+	robot_member.equipment_ids = robot_equipment_ids
+	robot_member.init_hp = -1.0
+	squad_cfg.members.append(robot_member)
 
 	return SquadRuntimeFactoryRef.from_config(squad_cfg)
-
-
-func _make_template(template_id: StringName, max_hp: float, action_ids: Array[StringName], passive_ids: Array[StringName], ai_id: StringName) -> ActorTemplate:
-	var t := ActorTemplateRef.new()
-	t.template_id = template_id
-	t.base_attr_set = _make_base_attr_set(max_hp)
-	t.action_ids = action_ids
-	t.passive_ids = passive_ids
-	t.ai_id = ai_id
-	return t
-
-
-func _make_base_attr_set(hp_max: float) -> AttributeSet:
-	var attr_set := AttributeSetRef.new()
-	attr_set.attributes = [
-		_make_attr("hp_max", hp_max),
-		_make_attr("atk", 10.0),
-		_make_attr("def", 0.0),
-		_make_attr("spd", 1.0),
-		_make_attr("dmg_out_mul", 1.0),
-		_make_attr("dmg_in_mul", 1.0),
-		_make_attr("heal_out_mul", 1.0),
-		_make_attr("heal_in_mul", 1.0),
-	]
-	return attr_set
-
-
-func _make_attr(attr_name: String, base_value: float) -> Attribute:
-	var attr := AttributeRef.new()
-	attr.attribute_name = attr_name
-	attr.base_value = base_value
-	return attr
 
 
 func _show_state() -> void:
@@ -388,9 +356,9 @@ func _show_state() -> void:
 	])
 
 	if _location != null:
-		_append_result("location=%s | enemy_groups=[%s]\n" % [
+		_append_result("location=%s | event_sequence=[%s]\n" % [
 			String(_location.location_id),
-			_join_string_names(_location.combat_enemy_groups)
+			", ".join(PackedStringArray(_location.event_sequence))
 		])
 
 	if _last_battle_start != null:
@@ -412,9 +380,12 @@ func _event_summary(event_obj: RefCounted) -> String:
 			String(combat_event.event_id),
 			String(combat_event.enemy_group_id)
 		]
-	if event_obj is NonCombatEventStub:
-		var stub := event_obj as NonCombatEventStub
-		return "non_combat(stub_id=%s)" % String(stub.stub_id)
+	if event_obj is RestEventDefRef:
+		var rest_event = event_obj
+		return "rest(event_id=%s heal=%s)" % [
+			String(rest_event.event_id),
+			str(rest_event.heal_amount)
+		]
 	return str(event_obj)
 
 
@@ -441,8 +412,8 @@ func _resolve_squad_runtime_for_test() -> SquadRuntime:
 		_squad_source = "hub_context"
 		return (from_context as SquadRuntime).duplicate(true) as SquadRuntime
 
-	_squad_source = "demo"
-	return _build_demo_squad_runtime()
+	_squad_source = DEFAULT_SQUAD_SOURCE
+	return _build_default_squad_runtime()
 
 
 func _battle_result_summary() -> String:
@@ -602,7 +573,7 @@ func _capture_pre_battle_snapshot() -> void:
 func _build_validation_report_lines() -> Array[String]:
 	var lines: Array[String] = []
 	lines.append(_validation_wait_line(_session != null, "session built", "press Build Session"))
-	lines.append(_validation_wait_line(_session != null and _session.current_event is CombatEventDef, "current event is combat", "press Advance on a combat event"))
+	lines.append(_validation_wait_line(_session != null and _session.get_current_event_type() == &"combat", "current event is combat", "press Advance on a combat event"))
 	lines.append(_validation_wait_line(_last_battle_start != null, "battle start built", "press Build BattleStart or Resolve Combat"))
 	lines.append(_validation_wait_line(_last_battle_result != null, "battle result built", "press Resolve Combat"))
 

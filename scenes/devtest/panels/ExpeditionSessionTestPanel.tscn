@@ -40,33 +40,25 @@ size_flags_horizontal = 3
 text = "forest_outpost"
 placeholder_text = "forest_outpost"
 
-[node name="EnemyGroupsRow" type="HBoxContainer" parent="ConfigFrame/ConfigVBox"]
+[node name="EventSequenceRow" type="HBoxContainer" parent="ConfigFrame/ConfigVBox"]
 layout_mode = 2
 theme_override_constants/separation = 6
 
-[node name="EnemyGroupsLabel" type="Label" parent="ConfigFrame/ConfigVBox/EnemyGroupsRow"]
+[node name="EventSequenceLabel" type="Label" parent="ConfigFrame/ConfigVBox/EventSequenceRow"]
 layout_mode = 2
-text = "Enemy Groups"
+text = "Event Sequence"
 
-[node name="EnemyGroupsEdit" type="LineEdit" parent="ConfigFrame/ConfigVBox/EnemyGroupsRow"]
+[node name="EventSequenceEdit" type="LineEdit" parent="ConfigFrame/ConfigVBox/EventSequenceRow"]
 layout_mode = 2
 size_flags_horizontal = 3
-placeholder_text = "wolves,bandits"
-text = "wolves,bandits"
+placeholder_text = "combat:training_dummy,rest"
+text = "combat:training_dummy,rest"
 
-[node name="OptionsRow" type="HBoxContainer" parent="ConfigFrame/ConfigVBox"]
-layout_mode = 2
-theme_override_constants/separation = 6
-
-[node name="AllowNonCombatStubCheck" type="CheckBox" parent="ConfigFrame/ConfigVBox/OptionsRow"]
-layout_mode = 2
-text = "Allow NonCombat Stub"
-
-[node name="InfoLabel" type="Label" parent="ConfigFrame/ConfigVBox/OptionsRow"]
+[node name="InfoLabel" type="Label" parent="ConfigFrame/ConfigVBox"]
 layout_mode = 2
 size_flags_horizontal = 3
 autowrap_mode = 2
-text = "Uses an internal demo squad runtime (2 members) for session setup."
+text = "Uses observer + robot from resources by default. Example sequence: combat:training_dummy,rest,combat:wolves"
 
 [node name="HpPolicyRow" type="HBoxContainer" parent="ConfigFrame/ConfigVBox"]
 layout_mode = 2
@@ -98,11 +90,11 @@ text = "Build BattleStart"
 
 [node name="ResolveCombatStubButton" type="Button" parent="ButtonRow"]
 layout_mode = 2
-text = "Resolve Combat (Stub)"
+text = "Resolve Event"
 
 [node name="CompleteEventButton" type="Button" parent="ButtonRow"]
 layout_mode = 2
-text = "Complete Event"
+text = "Skip Event"
 
 [node name="EndSessionButton" type="Button" parent="ButtonRow"]
 layout_mode = 2

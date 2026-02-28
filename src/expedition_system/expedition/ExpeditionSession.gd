@@ -71,7 +71,7 @@ func advance() -> RefCounted:
 
 	var event := EventSelector.select_next(location, step_count)
 	if event == null:
-		push_warning("ExpeditionSession.advance failed: selector returned null")
+		end_session(&"sequence_completed")
 		return null
 
 	current_event = event

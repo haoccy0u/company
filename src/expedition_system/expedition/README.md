@@ -1,61 +1,87 @@
-﻿# Expedition Module
+# Expedition Module
 
-## 1. 目标
+## Purpose
 
-`src/expedition_system/expedition` 负责远征层最小骨架：
-- 持有 `SquadRuntime`
-- 持有地点定义
-- 推进远征进度
-- 生成/触发事件（当前重点是 `CombatEventDef`）
+`src/expedition_system/expedition` handles expedition progression and event selection.
 
-本目录不负责：
-- 战斗数值结算
-- `CombatEngine` 内部逻辑
-- 战后回写细节（由 `battle/ResultApplier` 负责）
+This layer is responsible for:
+- holding `SquadRuntime`
+- holding `ExpeditionLocationDef`
+- advancing expedition steps
+- selecting the next expedition event
+- routing the current event to the correct handler
 
-## 2. 文件职责（当前）
+This layer is not responsible for:
+- combat numeric rules
+- `CombatEngine` internals
+- battle result write-back rules
+
+## Current Event Model
+
+Expeditions now use a finite ordered event sequence.
+
+Location input:
+- `ExpeditionLocationDef.event_sequence: PackedStringArray`
+
+Supported sequence items:
+- `combat:training_dummy`
+- `combat:wolves`
+- `rest`
+
+Meaning:
+- `combat:<enemy_group_id>` creates a `CombatEventDef`
+- `rest` creates a `RestEventDef`
+
+The sequence is consumed by `step_index`.
+When `step_index` reaches the end of the sequence, `ExpeditionSession.advance()` ends the expedition with `sequence_completed`.
+
+## Main Files
 
 - `ExpeditionLocationDef.gd`
-  - 地点定义（最小版）
-  - 提供敌人组来源（供 CombatEvent 生成）
-
-- `CombatEventDef.gd`
-  - 远征层运行时战斗事件对象
-
-- `NonCombatEventStub.gd`
-  - 非战斗事件占位对象（便于后续扩展）
+  - stores finite `event_sequence`
+  - provides helpers to read event type and payload for a given step
 
 - `EventSelector.gd`
-  - 事件选择器（当前优先生成 CombatEvent）
+  - selects the next event from the current location and `step_index`
+
+- `CombatEventDef.gd`
+  - battle event payload
+
+- `RestEventDef.gd`
+  - minimal non-combat event payload
+
+- `strategy/CombatEventStrategy.gd`
+  - builds combat events from `combat:<enemy_group_id>`
+
+- `strategy/RestEventStrategy.gd`
+  - builds rest events from `rest`
+
+- `handler/CombatEventHandler.gd`
+  - converts combat events into `BattleStart` or battle stub results
+
+- `handler/RestEventHandler.gd`
+  - applies fixed healing directly to `SquadRuntime`
+
+- `handler/ExpeditionEventRouter.gd`
+  - unified event consumption entry
 
 - `ExpeditionSession.gd`
-  - 远征会话状态与推进入口
-  - 管理当前事件、步数、结束状态
+  - session state and step progression
 
-## 3. 当前行为规则（MVP）
+## Current Boundary
 
-- `advance()` 每次最多生成一个事件
-- 当前事件未完成前，不允许再次 `advance()`
-- 当前优先生成 `CombatEventDef`
-- 若地点无可用敌人组且允许非战斗占位，则可回退 `NonCombatEventStub`
+- `EventSelector` decides what the current step event is.
+- `ExpeditionSession` decides when the expedition can advance and when it ends.
+- `ExpeditionEventRouter` decides how the current event is consumed.
+- `battle/` still owns actual combat execution.
 
-## 4. 关键边界
+## Manual Check
 
-- `ExpeditionSession` 不写战斗结算公式
-- `ExpeditionSession` 不直接修改战斗中 Actor
-- 远征层与战斗层通过 `BattleStart / BattleResult`（以及调用链）衔接
+Use `TestHub -> Expedition Session`.
 
-## 5. 当前测试方式
-
-通过 `scenes/devtest/panels/ExpeditionSessionTestPanel.tscn` 验证：
-- `setup()`
-- `advance()`
-- `complete_current_event()`
-- 与 `BattleBuilder / BattleSession` 的对接流程
-
-## 6. 后续扩展方向
-
-- 地点事件权重与事件池
-- 非战斗事件真实逻辑
-- 多场战斗远征结束条件细化（撤退、资源耗尽等）
-- 更正式的 BattleResult 消费流程（目前测试面板已先串通）
+Suggested sequence:
+1. `combat:training_dummy,rest,combat:wolves`
+2. Build Session
+3. Advance
+4. Resolve or complete the current event
+5. Repeat until the session ends with `sequence_completed`

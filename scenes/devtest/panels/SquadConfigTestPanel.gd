@@ -13,6 +13,7 @@ const CursorWithItemScene = preload("res://src/cursor/cursor_with_item.tscn")
 const SquadConfigRef = preload("res://src/expedition_system/squad/SquadConfig.gd")
 const MemberConfigRef = preload("res://src/expedition_system/squad/MemberConfig.gd")
 const SquadRuntimeFactoryRef = preload("res://src/expedition_system/squad/SquadRuntimeFactory.gd")
+const ActorTemplateResolverRef = preload("res://src/expedition_system/actor/ActorTemplateResolver.gd")
 const DevInventorySlotScene = preload("res://scenes/devtest/panels/DevInventorySlot.tscn")
 
 const CTX_SQUAD_CONFIG: StringName = &"expedition.squad_config"
@@ -328,6 +329,7 @@ func _build_demo_templates() -> void:
 		log_line("ActorTemplate resources not found, using built-in demo templates.")
 	else:
 		log_line("Loaded ActorTemplate resources from data/devtest/expedition/actors.")
+	ActorTemplateResolverRef.register_templates(_templates)
 
 
 func _load_devtest_templates_from_resources() -> Array[ActorTemplate]:
@@ -507,7 +509,6 @@ func _build_config_from_ui() -> SquadConfig:
 		var member := MemberConfigRef.new()
 		var member_id_text := (row["member_id"] as LineEdit).text.strip_edges()
 		member.member_id = StringName(member_id_text if not member_id_text.is_empty() else "m_%d" % (i + 1))
-		member.actor_template = template
 		member.actor_template_id = template.template_id
 		var equip_comp := _get_member_equip_comp_by_row_index(i)
 		if equip_comp != null and equip_comp.has_method("get_container_snapshot"):
@@ -591,6 +592,7 @@ func _show_runtime(config: SquadConfig, runtime: SquadRuntime) -> void:
 
 	for i in range(runtime.members.size()):
 		var m := runtime.members[i] as MemberRuntime
+		var template := ActorTemplateResolverRef.resolve(m.actor_template_id)
 		_append_result("- [%d] member_id=%s template=%s hp=%s/%s alive=%s\n" % [
 			i,
 			String(m.member_id),
@@ -599,13 +601,16 @@ func _show_runtime(config: SquadConfig, runtime: SquadRuntime) -> void:
 			str(m.max_hp),
 			str(m.alive)
 		])
-		_append_result("    actions=[%s] passives=[%s] ai=%s equip=[%s] has_equip_container=%s\n" % [
-			_join_string_names(m.action_ids),
-			_join_string_names(m.passive_ids),
-			String(m.ai_id),
+		_append_result("    equip=[%s] has_equip_container=%s\n" % [
 			_join_string_names(m.equipment_ids),
 			str(m.equipment_container != null)
 		])
+		if template != null:
+			_append_result("    template_actions=[%s] template_passives=[%s] template_ai=%s\n" % [
+				_join_string_names(template.action_ids),
+				_join_string_names(template.passive_ids),
+				String(template.ai_id)
+			])
 
 
 func _clear_result(initial_text: String) -> void:

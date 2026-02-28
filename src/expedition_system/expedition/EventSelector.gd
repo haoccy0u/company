@@ -1,17 +1,29 @@
 class_name EventSelector extends RefCounted
 
+const CombatEventStrategyRef = preload("res://src/expedition_system/expedition/strategy/CombatEventStrategy.gd")
+const RestEventStrategyRef = preload("res://src/expedition_system/expedition/strategy/RestEventStrategy.gd")
+
+
+static func get_strategies() -> Array:
+	return [
+		CombatEventStrategyRef.new(),
+		RestEventStrategyRef.new(),
+	]
+
 
 static func select_next(location: ExpeditionLocationDef, step_index: int) -> RefCounted:
 	if location == null:
 		push_error("EventSelector.select_next failed: location is null")
 		return null
 
-	var enemy_group_id: StringName = location.pick_combat_enemy_group(step_index)
-	if not enemy_group_id.is_empty():
-		return CombatEventDef.create(location.location_id, enemy_group_id, step_index, step_index)
-
-	if location.allow_non_combat_stub:
-		return NonCombatEventStub.create(location.location_id, step_index)
+	for strategy in get_strategies():
+		if strategy == null:
+			continue
+		if not strategy.can_build(location, step_index):
+			continue
+		var event: RefCounted = strategy.build_event(location, step_index)
+		if event != null:
+			return event
 
 	push_warning("EventSelector.select_next failed: no event available | location_id=%s" % String(location.location_id))
 	return null

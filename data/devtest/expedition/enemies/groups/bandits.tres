@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="EnemyGroupDef" format=3]
+
+[ext_resource type="Script" path="res://src/expedition_system/enemy/EnemyGroupDef.gd" id="1_group"]
+[ext_resource type="Script" path="res://src/expedition_system/enemy/EnemySpawnDef.gd" id="2_spawn"]
+
+[sub_resource type="Resource" id="Spawn_0"]
+script = ExtResource("2_spawn")
+actor_template_id = &"bandit_enemy"
+count = 2
+
+[resource]
+script = ExtResource("1_group")
+group_id = &"bandits"
+members = Array[ExtResource("2_spawn")]([SubResource("Spawn_0")])

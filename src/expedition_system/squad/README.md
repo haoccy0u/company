@@ -1,96 +1,101 @@
-﻿# Squad Module
+# Squad Module
 
-## 1. 目标
+## 1. Purpose
 
-`src/expedition_system/squad` 负责“小队配置（出发前）”与“远征期小队运行态（跨战斗）”。
-
-输入：
-- `SquadConfig`
-
-输出：
-- `SquadRuntime`
+`src/expedition_system/squad` 负责：
+- 出发前的小队配置
+- 远征期的小队运行时状态
+- 跨战斗保留的成员 HP / 装备结果
 
 本目录不负责：
-- 战斗结算
+- 单场战斗数值结算
+- 战斗 Actor 组装细节
 - 远征事件推进
-- UI 交互实现（测试 UI 在 `devtest`）
 
-## 2. 文件职责（当前）
-
-- `ActorTemplate.gd`
-  - 位于 `src/expedition_system/actor/ActorTemplate.gd`
-  - 角色模板资源（基础属性、行动、被动、AI、标签）
-  - 基础数值权威来源是 `base_attr_set: AttributeSet`
+## 2. Files
 
 - `MemberConfig.gd`
-  - 玩家配置的单成员项（当前阶段：角色 + 装备 + 可选 init_hp 覆盖）
+  - 单个成员的出发前配置
+  - 当前只保存：
+    - `member_id`
+    - `actor_template_id`
+    - `equipment_container`
+    - `equipment_ids`
+    - `init_hp`
 
 - `SquadConfig.gd`
-  - 玩家配置的小队（成员列表、小队标识等）
+  - 小队配置资源
 
 - `MemberRuntime.gd`
-  - 远征期单成员运行态（跨战斗保存）
-  - 包括当前 HP、存活、模板派生的行动/被动/AI 等
+  - 远征模块里的成员运行时状态
+  - 当前只保存跨战斗需要持续的数据：
+    - `member_id`
+    - `actor_template_id`
+    - `equipment_container`
+    - `equipment_ids`
+    - `current_hp`
+    - `max_hp`
+    - `alive`
+    - 长期状态占位字段
 
 - `SquadRuntime.gd`
-  - 远征期小队运行态（成员集合 + 小队级长期状态/资源占位）
+  - 小队运行时资源
 
 - `SquadRuntimeFactory.gd`
-  - `SquadConfig -> SquadRuntime` 初始化入口
-  - 集中管理初始化规则，避免逻辑散落
+  - `SquadConfig -> SquadRuntime` 的入口
+  - 当前不再手工复制模板里的动作 / 被动 / AI / 基础属性
+  - 玩家角色装配统一交给 `PlayerActorAssembler`
 
-## 3. 当前配置约束（已确定）
+## 3. Current Rule
 
-当前阶段玩家只配置：
-- 角色（`actor_template_id` / `actor_template`）
-- 装备（推荐使用 `equipment_container` 保存角色物品栏/装备栏数据）
+当前链路的关键约束：
 
-兼容字段（过渡期）：
-- `equipment_ids`（旧链路 fallback，用于现有 devtest 面板）
+1. `MemberConfig` 只保存玩家选择结果，不直接内嵌模板资源
+2. `MemberRuntime` 只保存远征期需要持续的状态
+3. 模板里的动作 / 被动 / AI / 基础属性不缓存到 `MemberRuntime`
+4. 进入战斗前，再根据 `actor_template_id` 统一加载模板并组装 `ActorEntry`
 
-以下内容从 `ActorTemplate` 加载（不是玩家手动配置）：
-- `action_ids`
-- `passive_ids`
-- `ai_id`
-- 基础属性（通过 `base_attr_set`）
+## 4. Why This Is Simpler
 
-## 4. 初始化规则（MVP）
+这次收敛后的目的，是删除玩家侧重复缓存。
 
-`SquadRuntimeFactory` 当前规则：
-- `max_hp`：优先从 `ActorTemplate.base_attr_set.hp_max` 读取
-- `current_hp`：
-  - `MemberConfig.init_hp >= 0` 时使用并 clamp 到 `[0, max_hp]`
-  - 否则使用 `max_hp`
-- `alive = current_hp > 0`
+旧问题：
+- `SquadRuntimeFactory` 会把 `ActorTemplate` 拆成 `MemberRuntime`
+- `BattleBuilder` 又把 `MemberRuntime` 再拆成 `ActorEntry`
+- 同一批字段被复制两次
 
-## 5. 持久 / 瞬态边界（关键）
+现在：
+- `SquadRuntime` 只保留远征状态
+- 战斗输入由统一装配入口生成
+- 模板数据只有一份权威来源：`ActorTemplate`
 
-保留到 `SquadRuntime`（跨战斗）：
-- `alive`
-- `current_hp`
-- `max_hp`
-- 装备容器数据（`equipment_container`）
-- `equipment_ids`（兼容字段，后续可移除）
-- 由模板加载的行动/被动/AI（供后续组装战斗输入）
-- 长期状态、资源占位字段
+## 5. Initialization Rule
 
-不保留到 `SquadRuntime`（战斗瞬态）：
-- 冷却剩余
-- 临时 buff/debuff
-- 战斗 tick 状态
-- 当前行动进度
+`SquadRuntimeFactory` 当前只做这些事：
 
-## 6. 与战斗模块的关系
+- 通过 `actor_template_id` 解析模板
+- 从模板读取 `hp_max`
+- 根据 `init_hp` 决定初始 HP
+- 复制装备相关配置
+- 设置 `alive = current_hp > 0`
 
-- `SquadRuntime` 是远征层持久状态
-- `BattleBuilder` 从 `SquadRuntime` 读取并生成 `BattleStart`
-- 战斗结束后 `ResultApplier` 再把 `BattleResult` 回写到 `SquadRuntime`
+## 6. Relation With Battle
 
-## 7. 手动验证建议
+关系现在更明确：
 
-1. 在 `TestHub -> Squad Config` 选择角色与装备
-2. 点击 `Build Config` 和 `Build Runtime`
-3. 确认输出中：
-   - 成员数量正确
+- `SquadRuntime` 保存远征状态
+- `BattleBuilder` 不再手工拼玩家角色字段
+- `PlayerActorAssembler` 负责：
+  - `MemberConfig -> MemberRuntime`
+  - `MemberRuntime -> ActorEntry`
+- `ResultApplier` 只负责把战斗结果回写到 `SquadRuntime`
+
+## 7. Manual Check
+
+1. 在 `TestHub -> Squad Config` 选择角色和装备
+2. 点击 `Build Config`
+3. 点击 `Build Runtime`
+4. 确认输出中：
+   - `member_id / actor_template_id` 正确
    - `HP / max_hp / alive` 初始化正确
-   - `passives` / `actions` / `ai` 来自角色模板
+   - 运行时里不再直接显示模板派生字段

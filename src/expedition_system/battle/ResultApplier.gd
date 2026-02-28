@@ -6,6 +6,7 @@ const CARRY_OVER_HP_POLICY_ID: StringName = &"carry_over"
 const CARRY_OVER_HP_POLICY_PATH := "res://src/expedition_system/battle/policy/CarryOverHpPolicy.gd"
 const RESET_FULL_HP_POLICY_ID: StringName = &"reset_full"
 const RESET_FULL_HP_POLICY_PATH := "res://src/expedition_system/battle/policy/ResetFullHpPolicy.gd"
+const PlayerActorAssemblerRef = preload("res://src/expedition_system/actor/PlayerActorAssembler.gd")
 
 
 static func apply_stub_result_to_squad_runtime(
@@ -35,6 +36,11 @@ static func apply_stub_result_to_squad_runtime(
 		var member := squad_runtime.find_member(member_id)
 		if member == null:
 			continue
+
+		if member.max_hp <= 0.0:
+			var template := PlayerActorAssemblerRef.resolve_template(member.actor_template_id)
+			if template != null:
+				member.max_hp = PlayerActorAssemblerRef.get_template_max_hp(template)
 
 		var next_hp: float = hp_policy.apply_hp(member, row)
 		member.current_hp = clampf(next_hp, 0.0, maxf(member.max_hp, 0.0))

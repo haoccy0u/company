@@ -2,12 +2,13 @@ extends TestPanelBase
 class_name SingleBattleExpeditionTestPanel
 
 const ActorTemplateRef = preload("res://src/expedition_system/actor/ActorTemplate.gd")
+const ActorTemplateResolverRef = preload("res://src/expedition_system/actor/ActorTemplateResolver.gd")
 const MemberConfigRef = preload("res://src/expedition_system/squad/MemberConfig.gd")
 const SquadConfigRef = preload("res://src/expedition_system/squad/SquadConfig.gd")
 const SquadRuntimeFactoryRef = preload("res://src/expedition_system/squad/SquadRuntimeFactory.gd")
 const ExpeditionLocationDefRef = preload("res://src/expedition_system/expedition/ExpeditionLocationDef.gd")
 const ExpeditionSessionRef = preload("res://src/expedition_system/expedition/ExpeditionSession.gd")
-const BattleBuilderRef = preload("res://src/expedition_system/battle/BattleBuilder.gd")
+const ExpeditionEventRouterRef = preload("res://src/expedition_system/expedition/handler/ExpeditionEventRouter.gd")
 const BattleResultRef = preload("res://src/expedition_system/battle/BattleResult.gd")
 const CombatEngineRef = preload("res://src/expedition_system/battle/CombatEngine.gd")
 const ResultApplierRef = preload("res://src/expedition_system/battle/ResultApplier.gd")
@@ -102,6 +103,9 @@ func _load_templates() -> void:
 	_templates.clear()
 	_templates[&"observer"] = load(OBSERVER_TEMPLATE_PATH)
 	_templates[&"robot"] = load(ROBOT_TEMPLATE_PATH)
+	for template in _templates.values():
+		if template is ActorTemplate:
+			ActorTemplateResolverRef.register_template(template as ActorTemplate)
 
 
 func _populate_loadout_options() -> void:
@@ -180,10 +184,10 @@ func _on_start_expedition_pressed() -> void:
 		_refresh_all_views()
 		return
 
-	_last_battle_start = BattleBuilderRef.from_combat_event(event_obj, _squad_runtime)
+	_last_battle_start = ExpeditionEventRouterRef.build_battle_start(event_obj, _squad_runtime)
 	if _last_battle_start == null:
 		status_label.text = "Build BattleStart failed"
-		log_line("BattleBuilder.from_combat_event() -> null")
+		log_line("ExpeditionEventRouter.build_battle_start() -> null")
 	else:
 		_last_battle_start.rules["hp_policy_id"] = ResultApplierRef.CARRY_OVER_HP_POLICY_ID
 		status_label.text = "Expedition started"
@@ -262,7 +266,6 @@ func _append_member_config(squad_config, enabled: bool, template_id: StringName,
 	var member_config = MemberConfigRef.new()
 	member_config.member_id = StringName("%s_member" % String(template_id))
 	member_config.actor_template_id = template_id
-	member_config.actor_template = template
 	member_config.equipment_ids = _get_loadout_ids(loadout_id)
 	member_config.init_hp = initial_hp
 	squad_config.members.append(member_config)
@@ -271,8 +274,7 @@ func _append_member_config(squad_config, enabled: bool, template_id: StringName,
 func _build_fixed_location():
 	var location = ExpeditionLocationDefRef.new()
 	location.location_id = LOCATION_ID
-	location.allow_non_combat_stub = false
-	location.combat_enemy_groups.append(ENEMY_GROUP_ID)
+	location.event_sequence = PackedStringArray(["combat:%s" % String(ENEMY_GROUP_ID)])
 	return location
 
 
@@ -322,9 +324,10 @@ func _refresh_squad_view() -> void:
 			str(member.alive)
 		])
 		squad_view.append_text("  equip=%s\n" % str(member.equipment_ids))
+		var template = ActorTemplateResolverRef.resolve(member.actor_template_id)
 		squad_view.append_text("  spd=%s cooldown_total=%s\n\n" % [
-			str(_get_attr_base_value(member.base_attr_set, &"spd")),
-			str(_cooldown_from_attr_set(member.base_attr_set))
+			str(_get_template_attr_base_value(template, &"spd")),
+			str(_cooldown_from_template(template))
 		])
 
 
@@ -482,7 +485,8 @@ func _validate_member_cooldown(template_id: StringName, expected_sec: float) -> 
 		if member == null or member.actor_template_id != template_id:
 			continue
 		found = true
-		if not is_equal_approx(_cooldown_from_attr_set(member.base_attr_set), expected_sec):
+		var template := ActorTemplateResolverRef.resolve(member.actor_template_id)
+		if not is_equal_approx(_cooldown_from_template(template), expected_sec):
 			return false
 	return found
 
@@ -507,6 +511,12 @@ func _cooldown_from_attr_set(attr_set) -> float:
 	return 1.0 / spd
 
 
+func _cooldown_from_template(template: ActorTemplate) -> float:
+	if template == null:
+		return 0.0
+	return _cooldown_from_attr_set(template.base_attr_set)
+
+
 func _get_attr_base_value(attr_set, attr_name: StringName) -> float:
 	if attr_set == null:
 		return 0.0
@@ -514,6 +524,12 @@ func _get_attr_base_value(attr_set, attr_name: StringName) -> float:
 	if attr == null:
 		return 0.0
 	return float(attr.get_base_value())
+
+
+func _get_template_attr_base_value(template: ActorTemplate, attr_name: StringName) -> float:
+	if template == null:
+		return 0.0
+	return _get_attr_base_value(template.base_attr_set, attr_name)
 
 
 func _event_summary(event_obj) -> String:
