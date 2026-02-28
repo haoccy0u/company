@@ -31,20 +31,21 @@ var applied_attribute:
 		return applied_attribute.get_ref() if is_instance_valid(applied_attribute) else null
 		
 func _init(_operation := AttributeModifier.OperationType.ADD, _value: float = 0.0, _name := ""):
-	attribute_modifier = AttributeModifier.new(_operation, _value)
 	operation = _operation
 	value = _value
 	buff_name = _name
+	_ensure_attribute_modifier()
 	
 func duplicate_buff() -> AttributeBuff:
-	if is_instance_valid(attribute_modifier):
-		var duplicated_buff = duplicate(true)
-		duplicated_buff.attribute_modifier = attribute_modifier.duplicate(true)
-		duplicated_buff.attribute_modifier.type = attribute_modifier.type
-		duplicated_buff.attribute_modifier.value = attribute_modifier.value
-		duplicated_buff.set_duration(duration)
-		return duplicated_buff
-	return null
+	var duplicated_buff = duplicate(true)
+	duplicated_buff.attribute_modifier = AttributeModifier.new(operation, value)
+	duplicated_buff.operation = operation
+	duplicated_buff.value = value
+	duplicated_buff.policy = policy
+	duplicated_buff.duration = duration
+	duplicated_buff.remaining_time = duration
+	duplicated_buff.is_pending_remove = false
+	return duplicated_buff
 	
 ## 由应用目标属性驱动
 func run_process(delta: float):
@@ -71,6 +72,7 @@ static func div(_value: float = 0.0, _name := "") -> AttributeBuff:
 
 
 func operate(base_value: float) -> float:
+	_ensure_attribute_modifier()
 	return attribute_modifier.operate(base_value)
 
 
@@ -96,3 +98,11 @@ func restart_duration():
 
 func extend_duration(_time: float):
 	remaining_time += _time
+
+
+func _ensure_attribute_modifier() -> void:
+	if not is_instance_valid(attribute_modifier):
+		attribute_modifier = AttributeModifier.new(operation, value)
+		return
+	attribute_modifier.type = operation
+	attribute_modifier.value = value

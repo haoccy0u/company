@@ -22,6 +22,18 @@
 - 管理 `base_value` / `computed_value`
 - 提供 `add/sub/mult/div/set_value` 等数值修改方法
 - 管理挂载在该属性上的 `AttributeBuff`
+- 提供“单个属性自定义计算方式”的接口：
+  - `custom_compute(operated_value, compute_params)`
+  - `derived_from()`
+  - `post_attribute_value_changed(value)`
+
+这 3 个接口的分工：
+- `derived_from()`
+  - 声明这个属性依赖哪些其它属性
+- `custom_compute(...)`
+  - 定义该属性在基础运算之后，如何结合依赖属性重新计算
+- `post_attribute_value_changed(...)`
+  - 定义最终值的后处理逻辑，例如 clamp、下限保护、格式化修正
 
 ### `AttributeModifier.gd`
 - 描述单次数值运算（加减乘除、设置）
@@ -48,6 +60,11 @@
 - 角色模板基础属性来自 `ActorTemplate.base_attr_set`
 - 战斗开始时复制为 `ActorRuntime.attr_set`
 - `ActorRuntime` 运行期注入 `hp` 属性（战斗内生命值）
+ - `ActorRuntime` 运行期注入通用属性：
+  - `hp`
+  - `damage`
+  - `heal`
+  - `cooldown_total`
 - `CombatEngine` 读取属性：
   - `hp_max`
   - `atk`
@@ -57,7 +74,8 @@
   - `dmg_in_mul`
   - `heal_out_mul`
   - `heal_in_mul`
-- `ActorRuntime.heal()` / `take_damage()` 优先通过 `Attribute` 方法改值（而不是直接 `current_hp +/- amount`）
+- `ActorRuntime.apply_heal()` / `apply_damage()` 通过 `Attribute` 方法改值，不再直接对 `current_hp` 做算术修改
+- `ActorRuntime` 当前还会创建运行时 `damage` 属性，用作单次伤害结算通道
 - `weaken` 状态通过 `AttributeBuff` 挂载到 `dmg_out_mul`
 
 ## 4. 使用约定（建议保持一致）
@@ -65,6 +83,9 @@
 推荐属性名：
 - `hp_max`
 - `hp`（运行期注入）
+- `damage`（运行期注入）
+- `heal`（运行期注入）
+- `cooldown_total`（运行期注入）
 - `atk`
 - `def`
 - `spd`
@@ -87,8 +108,62 @@
 - 属性最终值计算
 - 基础数值运算入口（`add/sub/mult/...`）
 
-## 6. 当前已知改进方向
+进一步约定：
+- 只要某段逻辑属于“单个角色内部的数值关系”，优先考虑放进 `Attribute` 子类
+- 只要某段逻辑依赖“触发时机 / 目标选择 / 跨角色影响”，应保留在行为层或 `CombatEngine`
 
-1. 给 `ActorRuntime` 增加通用 `apply_attribute_buff(attr_name, buff_template)`
+当前划分示例：
+- 适合属性框架：
+  - `hp` 对 `hp_max` 的钳制
+  - `damage` 作为单次伤害通道的最终数值处理
+  - 未来的 `cooldown_total <- spd` 派生关系
+- 不适合属性框架：
+  - 攻击时选择哪个敌人
+  - 攻击后给谁治疗
+  - 什么时候触发被动
+  - 跨 Actor 的效果真正落地
+
+## 6. 当前已下沉的通用属性优化
+
+### `RuntimeHpAttribute.gd`
+- 运行时 `hp` 不再只是一条普通属性
+- 现在由 `RuntimeHpAttribute` 负责：
+  - 依赖 `hp_max`
+  - 在 `post_attribute_value_changed()` 中统一钳制到 `0..hp_max`
+
+这意味着：
+- `ActorRuntime.apply_heal()` / `apply_damage()` 不再手动对 `hp` 做 clamp
+- `ActorRuntime.current_hp` 只是运行时 `hp` 的镜像输出，不再是权威来源
+
+### `RuntimeDamageAttribute.gd`
+- 运行时 `damage` 通道属性
+- 负责把单次伤害结算值约束为非负
+
+### `RuntimeHealAttribute.gd`
+- 运行时 `heal` 通道属性
+- 负责把单次治疗结算值约束为非负
+
+### `RuntimeCooldownTotalAttribute.gd`
+- 运行时 `cooldown_total` 属性
+- 依赖 `spd`
+- 统一计算：
+  - `cooldown_total = 1 / max(spd, 0.1)`
+- actor 不再直接手算这条关系
+
+## 7. 推荐后续优化顺序
+
+1. `hp`
+   - 已完成：钳制逻辑下沉到自定义属性类
+2. `damage`
+   - 已完成：收口为运行时通道属性
+3. `cooldown_total`
+   - 已完成：作为 `spd` 的派生属性
+4. `heal`
+   - 已完成：补齐与 `damage` 对称的临时属性通道
+
+## 8. 当前已知改进方向
+
+1. 继续把更多单角色数值关系收进自定义属性类
 2. 把更多被动效果参数化并通过 `AttributeBuff` 资源驱动
-3. 进一步减少 `CombatEngine` 中的硬编码数值常量
+3. 继续减少 `CombatEngine` 中的硬编码数值常量
+4. 在测试资源层重新设计观者 / 机器人，验证新的通用属性通道

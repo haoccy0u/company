@@ -97,9 +97,10 @@
 - `ActorRuntime.attribute_component.attribute_set` 与 `attr_set` 同步
 - `ActorRuntime.inventory_component` 会根据 `equipment_ids` 重建装备属性 buff（通过 inventory 中的 `item_id`）
 - `ActorRuntime.inventory_component` 优先根据 `equipment_container` 重建装备属性 buff（通过 inventory 中的 `item_id`）
-- `ActorRuntime` 在运行期注入 `hp` 属性
+- `ActorRuntime` 在运行期注入 `hp` 和 `damage` 属性
 - `CombatEngine` 读取属性值进行结算
-- `ActorRuntime.heal()/take_damage()` 优先走属性框架（`Attribute.add/sub/set_value`）
+- `ActorRuntime.apply_heal()/apply_damage()` 完全走属性框架（`Attribute.add/sub/set_value`）
+- 单次伤害通过运行时 `damage` 属性完成结算后再应用到 `hp`
 - `weaken` 通过 `AttributeBuff` 挂到 `dmg_out_mul`
 
 详细说明见：`src/attribute_framework/README.md`
@@ -133,3 +134,25 @@
 - `src/expedition_system/CHARACTER_DATA_FLOW.md`
 - `src/attribute_framework/README.md`
 - `src/expedition_system/battle/policy/README.md`
+
+## 10. Actor Turn Plan Boundary
+
+当前约定：
+- `ActorRuntime` 负责生成本回合计划：`action_id / primary_target / attack_ctx / follow_up_effects`
+- `CombatEngine` 负责统一应用这个计划造成的跨 Actor 影响
+- actor 可以决定打谁，但不能直接修改目标状态
+- `ActorRuntime` 现在也负责导出状态移除事件与 `ActorResult`
+- `CombatEngine` 对 actor 的依赖继续收敛到：回合计划消费、跨 Actor 影响落地、全局时序与胜负判定
+
+## 11. Passive Template Execution
+
+当前被动执行链路：
+- `PassiveTemplate.effects` 描述效果
+- `PassiveResolver` 按需加载被动资源并缓存
+- `PassiveExecutor` 解释 effect
+- `CombatEngine` 不再关心具体被动名，只消费 actor 产出的攻击修正与 follow-up effects
+
+数值侧约定：
+- 持续性数值变化优先通过 `AttributeBuff` 实现
+- 单次伤害加成通过运行时 `damage` 属性 + 临时 `AttributeBuff` 实现
+- 治疗与最终 HP 变化仍通过 attribute framework 的 `Attribute.add/sub/set_value` 落地

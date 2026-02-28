@@ -13,3 +13,9 @@ script = ExtResource("2_attribute_component_script")
 [node name="ActorInventoryComponent" type="Node" parent="."]
 script = ExtResource("3_actor_inventory_component_script")
 save_enabled = false
+
+[node name="VisualRoot" type="Node2D" parent="."]
+
+[node name="StateFxRoot" type="Node2D" parent="VisualRoot"]
+
+[node name="UiAnchor" type="Marker2D" parent="VisualRoot"]

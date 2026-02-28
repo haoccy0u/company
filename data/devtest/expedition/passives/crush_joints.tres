@@ -1,17 +1,58 @@
-[gd_resource type="Resource" script_class="PassiveTemplate" format=3]
+[gd_resource type="Resource" script_class="PassiveTemplate" load_steps=5 format=3]
 
 [ext_resource type="Script" path="res://src/expedition_system/battle/PassiveTemplate.gd" id="1_passive"]
+[ext_resource type="Script" path="res://src/expedition_system/actor/behavior/PassiveEffectSpec.gd" id="2_effect"]
+[ext_resource type="Script" path="res://src/attribute_framework/AttributeBuff.gd" id="3_buff"]
+
+[sub_resource type="Resource" id="1_weaken_buff"]
+script = ExtResource("3_buff")
+buff_name = "weaken"
+operation = 2
+value = 0.7
+policy = 1
+duration = 2.0
+merging = 0
+
+[sub_resource type="Resource" id="2_apply_weaken"]
+script = ExtResource("2_effect")
+effect_id = &"apply_weaken"
+trigger_id = &"on_attack_hit"
+effect_type = &"apply_buff_to_target_attr"
+target_rule = &"primary_target"
+attr_name = &"dmg_out_mul"
+status_id = &"weaken"
+buff = SubResource("1_weaken_buff")
+
+[sub_resource type="Resource" id="3_bonus_damage_buff"]
+script = ExtResource("3_buff")
+buff_name = "bonus_damage_vs_weakened"
+operation = 2
+value = 1.25
+policy = 0
+duration = 0.0
+merging = 0
+
+[sub_resource type="Resource" id="4_bonus_damage"]
+script = ExtResource("2_effect")
+effect_id = &"bonus_damage_vs_weakened"
+trigger_id = &"on_attack_compute"
+effect_type = &"damage_buff_if_target_status"
+target_rule = &"primary_target"
+attr_name = &"damage"
+required_status_id = &"weaken"
+buff = SubResource("3_bonus_damage_buff")
 
 [resource]
 script = ExtResource("1_passive")
 passive_id = &"crush_joints"
-display_name = "粉碎关节"
-description = "攻击命中时赋予敌人2秒虚弱（伤害变为70%）。对处于虚弱状态的敌人造成额外伤害。"
+display_name = "绮夌鍏宠妭"
+description = "鏀诲嚮鍛戒腑鏃惰祴浜堟晫浜?绉掕櫄寮憋紙浼ゅ鍙樹负70%锛夈€傚澶勪簬铏氬急鐘舵€佺殑鏁屼汉閫犳垚棰濆浼ゅ銆?"
 trigger_id = &"on_attack_hit"
 effect_tags = Array[StringName]([&"apply_weaken", &"bonus_damage_vs_weakened"])
 params = {
-"weak_duration_sec": 2.0,
-"weak_outgoing_damage_multiplier": 0.7,
 "bonus_damage_ratio": 0.25,
-"bonus_damage_ratio_is_placeholder": true
+"bonus_damage_ratio_is_placeholder": true,
+"weak_duration_sec": 2.0,
+"weak_outgoing_damage_multiplier": 0.7
 }
+effects = Array[Resource]([SubResource("2_apply_weaken"), SubResource("4_bonus_damage")])

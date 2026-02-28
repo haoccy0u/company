@@ -16,7 +16,7 @@ theme_override_font_sizes/font_size = 18
 [node name="TipsLabel" type="Label" parent="."]
 layout_mode = 2
 autowrap_mode = 2
-text = "Tests expedition skeleton only: setup session, advance event, complete event. CombatEngine is not connected yet."
+text = "Use this panel as a validation tool: the upper report gives PASS/WAIT checks, the lower summary gives fixed battle metrics."
 
 [node name="ConfigFrame" type="PanelContainer" parent="."]
 layout_mode = 2
@@ -117,6 +117,24 @@ layout_mode = 2
 autowrap_mode = 2
 text = "Ready"
 
+[node name="CheckpointFrame" type="PanelContainer" parent="."]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="CheckpointVBox" type="VBoxContainer" parent="CheckpointFrame"]
+layout_mode = 2
+theme_override_constants/separation = 4
+
+[node name="CheckpointLabel" type="Label" parent="CheckpointFrame/CheckpointVBox"]
+layout_mode = 2
+text = "Validation Report"
+
+[node name="CheckpointView" type="RichTextLabel" parent="CheckpointFrame/CheckpointVBox"]
+layout_mode = 2
+size_flags_horizontal = 3
+custom_minimum_size = Vector2(0, 120)
+selection_enabled = true
+
 [node name="SquadStateFrame" type="PanelContainer" parent="."]
 layout_mode = 2
 size_flags_horizontal = 3
@@ -144,5 +162,5 @@ size_flags_vertical = 3
 layout_mode = 2
 size_flags_horizontal = 3
 size_flags_vertical = 3
-custom_minimum_size = Vector2(0, 220)
+custom_minimum_size = Vector2(0, 180)
 selection_enabled = true

@@ -3,20 +3,8 @@ class_name CombatEngine
 
 const ActorRuntimeRef = preload("res://src/expedition_system/actor/ActorRuntime.gd")
 const ActorRuntimeSceneRef = preload("res://src/expedition_system/actor/ActorRuntime.tscn")
-const ActorResultRef = preload("res://src/expedition_system/actor/ActorResult.gd")
-const PassiveTemplateRef = preload("res://src/expedition_system/battle/PassiveTemplate.gd")
-
-const PASSIVE_CRUSH_JOINTS: StringName = &"crush_joints"
-const PASSIVE_ATTACK_HEAL_ALLY: StringName = &"attack_heal_ally"
-const STATUS_WEAKEN: StringName = &"weaken"
-
 const DEFAULT_TICK_DELTA: float = 0.2
 const DEFAULT_MAX_TICKS: int = 200
-const DEFAULT_CRUSH_JOINTS_WEAK_MULT: float = 0.7
-const DEFAULT_CRUSH_JOINTS_WEAK_DURATION: float = 2.0
-const DEFAULT_CRUSH_JOINTS_BONUS_RATIO: float = 0.25
-const DEFAULT_ROBOT_HEAL_FLAT: float = 8.0
-const PASSIVE_RESOURCE_DIR := "res://data/devtest/expedition/passives/"
 
 var battle_id: StringName = &""
 var source_event_id: StringName = &""
@@ -31,7 +19,6 @@ var is_running: bool = false
 var is_finished: bool = false
 var end_reason: StringName = &""
 var winner_camp: StringName = &""
-var passive_defs: Dictionary = {} # passive_id(String) -> PassiveTemplate
 var actor_host_root: Node = null
 var actor_nodes_root: Node = null
 
@@ -56,8 +43,6 @@ func setup(start: BattleStart) -> bool:
 	is_finished = false
 	end_reason = &""
 	winner_camp = &""
-	passive_defs.clear()
-
 	_apply_initial_cooldown_stagger()
 
 	event_log.append({
@@ -155,12 +140,13 @@ func _resolve_actor_turn(attacker) -> void:
 	if attacker == null or not attacker.is_usable():
 		return
 
-	var target = _select_attack_target(attacker)
+	var turn_plan: Dictionary = attacker.build_turn_plan(_get_actor_opponents(attacker), _get_actor_allies(attacker))
+	var target = turn_plan.get("primary_target", null)
 	if target == null:
 		_evaluate_end_condition()
 		return
 
-	var action_id: StringName = _select_action_id(attacker)
+	var action_id: StringName = turn_plan.get("action_id", &"basic_attack")
 	var action_log: Dictionary = {
 		"type": &"action",
 		"tick": tick_count,
@@ -172,12 +158,12 @@ func _resolve_actor_turn(attacker) -> void:
 		"target_member_id": target.member_id,
 	}
 
-	var attack_ctx := _compute_attack_damage(attacker, target)
+	var attack_ctx: Dictionary = turn_plan.get("attack_ctx", {})
 	var damage_before_bonus: float = float(attack_ctx.get("damage_pre_passive", 0.0))
 	var damage_final: float = float(attack_ctx.get("damage_final", 0.0))
-	var target_hp_before: float = target.current_hp
-	var dealt: float = target.take_damage(damage_final)
-	var target_hp_after: float = target.current_hp
+	var target_hp_before: float = target.get_current_hp()
+	var dealt: float = target.apply_damage(damage_final)
+	var target_hp_after: float = target.get_current_hp()
 
 	action_log["damage_pre_passive"] = damage_before_bonus
 	action_log["damage"] = dealt
@@ -195,19 +181,20 @@ func _resolve_actor_turn(attacker) -> void:
 		"source_actor_id": attacker.actor_id,
 	})
 
-	if bool(attack_ctx.get("bonus_vs_weakened", false)):
+	var triggered_effect_ids: Array = attack_ctx.get("triggered_effect_ids", [])
+	for effect_id in triggered_effect_ids:
 		event_log.append({
 			"type": &"passive_trigger",
 			"tick": tick_count,
 			"actor_id": attacker.actor_id,
-			"passive_id": PASSIVE_CRUSH_JOINTS,
-			"effect": &"bonus_damage_vs_weakened",
+			"effect": effect_id,
 			"target_actor_id": target.actor_id,
 		})
 
-	_apply_on_attack_passives(attacker, target)
+	var follow_up_effects: Array[Dictionary] = turn_plan.get("follow_up_effects", [])
+	_apply_actor_effects(attacker, follow_up_effects)
 
-	if not target.alive:
+	if not target.is_alive():
 		event_log.append({
 			"type": &"death",
 			"tick": tick_count,
@@ -220,117 +207,70 @@ func _resolve_actor_turn(attacker) -> void:
 	_evaluate_end_condition()
 
 
-func _compute_attack_damage(attacker, target) -> Dictionary:
-	var atk: float = attacker.get_attr_value(&"atk", 10.0)
-	var defense: float = target.get_attr_value(&"def", 0.0)
-	var dmg_out_mul: float = attacker.get_attr_value(&"dmg_out_mul", 1.0)
-	var dmg_in_mul: float = target.get_attr_value(&"dmg_in_mul", 1.0)
-
-	var raw_damage: float = maxf(atk - (defense * 0.5), 1.0)
-	var damage_after_mul: float = maxf(raw_damage * dmg_out_mul * dmg_in_mul, 1.0)
-	var bonus_vs_weakened: bool = false
-
-	if _has_passive(attacker, PASSIVE_CRUSH_JOINTS) and target.has_named_buff(&"dmg_out_mul", STATUS_WEAKEN):
-		var bonus_ratio: float = _get_passive_param_float(attacker, PASSIVE_CRUSH_JOINTS, &"bonus_damage_ratio", DEFAULT_CRUSH_JOINTS_BONUS_RATIO)
-		damage_after_mul *= maxf(1.0 + bonus_ratio, 0.0)
-		bonus_vs_weakened = true
-
-	return {
-		"damage_pre_passive": raw_damage,
-		"damage_final": maxf(damage_after_mul, 1.0),
-		"bonus_vs_weakened": bonus_vs_weakened,
-	}
-
-
-func _apply_on_attack_passives(attacker, target) -> void:
-	if attacker == null or target == null:
+func _apply_actor_effects(attacker, effects: Array[Dictionary]) -> void:
+	if attacker == null:
 		return
-
-	if _has_passive(attacker, PASSIVE_CRUSH_JOINTS):
-		var weak_mult: float = _get_passive_param_float(attacker, PASSIVE_CRUSH_JOINTS, &"weak_outgoing_damage_multiplier", DEFAULT_CRUSH_JOINTS_WEAK_MULT)
-		var weak_duration: float = _get_passive_param_float(attacker, PASSIVE_CRUSH_JOINTS, &"weak_duration_sec", DEFAULT_CRUSH_JOINTS_WEAK_DURATION)
-		var applied: bool = target.add_multiplicative_buff(&"dmg_out_mul", weak_mult, STATUS_WEAKEN, weak_duration)
-		if applied:
-			event_log.append({
-				"type": &"status_applied",
-				"tick": tick_count,
-				"actor_id": target.actor_id,
-				"member_id": target.member_id,
-				"status_id": STATUS_WEAKEN,
-				"duration": weak_duration,
-				"multiplier": weak_mult,
-				"source_actor_id": attacker.actor_id,
-				"passive_id": PASSIVE_CRUSH_JOINTS,
-			})
-
-	if _has_passive(attacker, PASSIVE_ATTACK_HEAL_ALLY):
-		var heal_rule: StringName = _get_passive_param_string_name(attacker, PASSIVE_ATTACK_HEAL_ALLY, &"heal_target_rule", &"lowest_hp_percent_ally")
-		var ally = _select_heal_target(attacker, heal_rule)
-		if ally != null:
-			var heal_out_mul: float = attacker.get_attr_value(&"heal_out_mul", 1.0)
-			var heal_in_mul: float = ally.get_attr_value(&"heal_in_mul", 1.0)
-			var atk: float = attacker.get_attr_value(&"atk", 10.0)
-			var heal_flat: float = _get_passive_param_float(attacker, PASSIVE_ATTACK_HEAL_ALLY, &"heal_amount_flat", DEFAULT_ROBOT_HEAL_FLAT)
-			var heal_amount: float = maxf((heal_flat + atk * 0.2) * heal_out_mul * heal_in_mul, 1.0)
-			var hp_before: float = ally.current_hp
-			var healed: float = ally.heal(heal_amount)
-			if healed > 0.0:
-				event_log.append({
-					"type": &"passive_trigger",
-					"tick": tick_count,
-					"actor_id": attacker.actor_id,
-					"passive_id": PASSIVE_ATTACK_HEAL_ALLY,
-					"effect": &"heal_one_ally_on_attack",
-					"target_actor_id": ally.actor_id,
-					"heal_target_rule": heal_rule,
-				})
-				event_log.append({
-					"type": &"value_change",
-					"tick": tick_count,
-					"actor_id": ally.actor_id,
-					"member_id": ally.member_id,
-					"stat": &"hp",
-					"hp_before": hp_before,
-					"hp_after": ally.current_hp,
-					"delta_hp": healed,
-					"source_actor_id": attacker.actor_id,
-				})
-
-
-func _select_action_id(attacker) -> StringName:
-	if attacker == null or attacker.action_ids.is_empty():
-		return &"basic_attack"
-	return attacker.action_ids[0]
+	for effect in effects:
+		var effect_type: StringName = effect.get("type", &"")
+		match effect_type:
+			&"status_apply":
+				var target = effect.get("target", null)
+				if target == null:
+					continue
+				var attr_name: StringName = effect.get("attr_name", &"")
+				var buff = effect.get("buff", null)
+				var applied: bool = target.apply_attribute_buff(attr_name, buff)
+				if applied:
+					event_log.append({
+						"type": &"status_applied",
+						"tick": tick_count,
+						"actor_id": target.actor_id,
+						"member_id": target.member_id,
+						"status_id": effect.get("status_id", &""),
+						"duration": float(effect.get("duration", 0.0)),
+						"multiplier": float(effect.get("multiplier", 0.0)),
+						"source_actor_id": attacker.actor_id,
+						"passive_id": effect.get("passive_id", &""),
+					})
+			&"heal":
+				var heal_target = effect.get("target", null)
+				if heal_target == null:
+					continue
+				var hp_before: float = heal_target.get_current_hp()
+				var healed: float = heal_target.apply_heal(float(effect.get("amount", 0.0)))
+				if healed > 0.0:
+					event_log.append({
+						"type": &"passive_trigger",
+						"tick": tick_count,
+						"actor_id": attacker.actor_id,
+						"passive_id": effect.get("passive_id", &""),
+						"effect": effect.get("effect_id", &"heal_one_ally_on_attack"),
+						"target_actor_id": heal_target.actor_id,
+						"heal_target_rule": effect.get("heal_target_rule", &""),
+					})
+					event_log.append({
+						"type": &"value_change",
+						"tick": tick_count,
+						"actor_id": heal_target.actor_id,
+						"member_id": heal_target.member_id,
+						"stat": &"hp",
+						"hp_before": hp_before,
+						"hp_after": heal_target.get_current_hp(),
+						"delta_hp": healed,
+						"source_actor_id": attacker.actor_id,
+					})
 
 
-func _select_attack_target(attacker):
-	if attacker == null:
-		return null
-	var candidates: Array = enemy_actors if attacker.camp == &"player" else player_actors
-	for target in candidates:
-		if target != null and target.is_usable():
-			return target
-	return null
+func _get_actor_allies(actor) -> Array:
+	if actor == null:
+		return []
+	return player_actors if actor.camp == &"player" else enemy_actors
 
 
-func _select_heal_target(attacker, heal_rule: StringName = &"lowest_hp_percent_ally"):
-	if attacker == null:
-		return null
-	var allies: Array = player_actors if attacker.camp == &"player" else enemy_actors
-	if heal_rule != &"lowest_hp_percent_ally":
-		# Current M3/M4 only implements one rule; keep deterministic fallback.
-		heal_rule = &"lowest_hp_percent_ally"
-	var best = null
-	var best_ratio: float = 2.0
-	for ally in allies:
-		if ally == null or not ally.is_usable():
-			continue
-		var max_hp: float = maxf(ally.max_hp, 1.0)
-		var ratio: float = ally.current_hp / max_hp
-		if ratio < best_ratio:
-			best_ratio = ratio
-			best = ally
-	return best
+func _get_actor_opponents(actor) -> Array:
+	if actor == null:
+		return []
+	return enemy_actors if actor.camp == &"player" else player_actors
 
 
 func _build_runtime_actors(entries: Array) -> Array:
@@ -341,8 +281,7 @@ func _build_runtime_actors(entries: Array) -> Array:
 			continue
 		var actor = _instantiate_runtime_actor(entry)
 		if actor != null:
-			actor.tags["hp_start"] = actor.current_hp
-			actor.tags["spawn_index"] = i
+			actor.record_battle_start_state(i)
 			_attach_runtime_actor(actor, i)
 			actors.append(actor)
 	return actors
@@ -380,13 +319,7 @@ func _build_player_results() -> Array:
 	for actor in player_actors:
 		if actor == null:
 			continue
-		var row := ActorResultRef.new()
-		row.member_id = actor.member_id
-		row.hp_before = float(actor.tags.get("hp_start", actor.current_hp))
-		row.hp_after = actor.current_hp
-		row.max_hp = actor.max_hp
-		row.alive = actor.alive
-		rows.append(row)
+		rows.append(actor.to_actor_result())
 	return rows
 
 
@@ -409,56 +342,7 @@ func _stagger_group(group_actors: Array) -> void:
 	for i in range(n):
 		var actor = living[i]
 		var ratio: float = float(i) / float(n)
-		actor.cooldown_remaining = actor.cooldown_total * ratio
-
-
-func _has_passive(actor, passive_id: StringName) -> bool:
-	if actor == null:
-		return false
-	for pid in actor.passive_ids:
-		if pid == passive_id:
-			return true
-	return false
-
-
-func _get_passive_param_float(actor, passive_id: StringName, key: StringName, fallback: float) -> float:
-	var params: Dictionary = _get_passive_params(actor, passive_id)
-	if params.is_empty():
-		return fallback
-	return float(params.get(String(key), fallback))
-
-
-func _get_passive_param_string_name(actor, passive_id: StringName, key: StringName, fallback: StringName) -> StringName:
-	var params: Dictionary = _get_passive_params(actor, passive_id)
-	if params.is_empty():
-		return fallback
-	var value: Variant = params.get(String(key), fallback)
-	if value is StringName:
-		return value
-	return StringName(str(value))
-
-
-func _get_passive_params(actor, passive_id: StringName) -> Dictionary:
-	if actor == null or not _has_passive(actor, passive_id):
-		return {}
-	var passive_def = _get_passive_def(passive_id)
-	if passive_def == null:
-		return {}
-	return passive_def.params if passive_def.params is Dictionary else {}
-
-
-func _get_passive_def(passive_id: StringName):
-	var key := String(passive_id)
-	if passive_defs.has(key):
-		return passive_defs[key]
-
-	var path := "%s%s.tres" % [PASSIVE_RESOURCE_DIR, key]
-	var res = load(path)
-	if res != null and res is Resource:
-		passive_defs[key] = res
-		return res
-	push_warning("CombatEngine: failed to load PassiveTemplate for passive_id=%s | path=%s" % [key, path])
-	return null
+		actor.set_cooldown_ratio(ratio)
 
 
 func _capture_tracked_status_snapshot() -> Dictionary:
@@ -473,9 +357,7 @@ func _capture_tracked_status_snapshot() -> Dictionary:
 func _capture_actor_status(actor, snap: Dictionary) -> void:
 	if actor == null:
 		return
-	snap[String(actor.actor_id)] = {
-		String(STATUS_WEAKEN): actor.has_named_buff(&"dmg_out_mul", STATUS_WEAKEN),
-	}
+	snap[String(actor.actor_id)] = actor.get_tracked_status_snapshot()
 
 
 func _log_tracked_status_transitions(before_snapshot: Dictionary) -> void:
@@ -490,16 +372,9 @@ func _log_actor_status_transition(actor, before_snapshot: Dictionary) -> void:
 		return
 	var key := String(actor.actor_id)
 	var prev: Dictionary = before_snapshot.get(key, {})
-	var prev_weaken: bool = bool(prev.get(String(STATUS_WEAKEN), false))
-	var now_weaken: bool = actor.has_named_buff(&"dmg_out_mul", STATUS_WEAKEN)
-	if prev_weaken and not now_weaken:
-		event_log.append({
-			"type": &"status_removed",
-			"tick": tick_count,
-			"actor_id": actor.actor_id,
-			"member_id": actor.member_id,
-			"status_id": STATUS_WEAKEN,
-		})
+	var actor_events: Array[Dictionary] = actor.build_status_transition_events(prev, tick_count)
+	for row in actor_events:
+		event_log.append(row)
 
 
 func _evaluate_end_condition() -> void:
