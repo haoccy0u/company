@@ -6,12 +6,11 @@
 [resource]
 script = ExtResource("1_actor")
 template_id = &"robot"
-display_name = "机器人"
+display_name = "Robot"
 base_attr_set = ExtResource("2_attr_set")
 action_ids = Array[StringName]([&"basic_attack"])
 passive_ids = Array[StringName]([&"attack_heal_ally"])
 ai_id = &"basic_auto"
 tags = {
-"role": &"support_tank",
-"devtest_passive_ref": "res://data/devtest/expedition/passives/attack_heal_ally.tres"
+"role": &"support_tank"
 }

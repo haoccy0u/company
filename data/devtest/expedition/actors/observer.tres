@@ -6,12 +6,11 @@
 [resource]
 script = ExtResource("1_actor")
 template_id = &"observer"
-display_name = "观者"
+display_name = "Observer"
 base_attr_set = ExtResource("2_attr_set")
 action_ids = Array[StringName]([&"basic_attack"])
 passive_ids = Array[StringName]([&"crush_joints"])
 ai_id = &"basic_auto"
 tags = {
-"role": &"debuffer",
-"devtest_passive_ref": "res://data/devtest/expedition/passives/crush_joints.tres"
+"role": &"debuffer"
 }

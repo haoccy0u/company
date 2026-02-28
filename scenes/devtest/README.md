@@ -1,8 +1,8 @@
-﻿# DevTest Scenes
+# DevTest Scenes
 
 `scenes/devtest` 是通用开发测试工作台场景目录。
 
-## 场景结构（当前）
+## 场景结构
 
 - `TestHub.tscn`
   - 通用测试入口
@@ -13,7 +13,7 @@
 
 - `panels/ExpeditionSessionTestPanel.tscn`
   - 远征推进、`BattleStart` 组装、战斗执行与回写测试
-  - 以 `PASS/WAIT` 验证报告 + 固定战斗指标摘要为主，不再依赖原始大段日志
+  - 以 `PASS/WAIT` 验证报告 + 固定战斗指标摘要为主
 
 - `panels/ActorRuntimeTestPanel.tscn`
   - 单 actor 本体测试
@@ -26,8 +26,8 @@
 ## 约定
 
 - 面板 UI 使用 `.tscn` 保存，不在脚本里动态创建 UI 节点
-- 测试面板可使用 `TestHub` 共享上下文传递测试数据（如 `SquadRuntime`）
-- 如需临时调试控件，优先放在 `devtest`，避免污染正式场景
+- 测试面板可使用 `TestHub` 共享上下文传递测试数据
+- 如需临时调试控件，优先放在 `devtest`
 - `ActorRuntime` 相关测试应优先复用：
   - `src/expedition_system/actor/test/ActorRuntimeTestService.gd`
   - 手动面板与 smoke 场景必须共用同一套测试逻辑
@@ -41,23 +41,4 @@
 - `CombatEngine` 是否退回到“调度 + 落地 + 记录”的职责
 
 详细用例见：
-- `src/expedition_system/actor/ACTOR_AUTONOMY_TEST_PLAN.md`
-
-## Expedition Panel 输出约定
-
-`ExpeditionSessionTestPanel` 当前分为 3 块关键信息：
-
-- `Validation Report`
-  - 面向人工验收
-  - 输出 `PASS/WAIT/FAIL`
-  - 未执行到该步骤时显示 `WAIT`
-  - 已执行战斗但条件未满足时显示 `FAIL`
-  - 检查战斗链路、被动触发、状态移除、真实治疗、HP 策略回写
-
-- `Squad Runtime State (Live)`
-  - 观察远征中小队当前 HP / 存活 / 装备
-
-- `Session Summary / Battle Metrics`
-  - 只保留固定字段
-  - 例如 `actions / value / status+ / status- / passives / deaths`
-  - 以及成员 `HP before -> after | damage_taken | heal_received`
+- `src/expedition_system/docs/plans/actor_autonomy_test_plan.md`

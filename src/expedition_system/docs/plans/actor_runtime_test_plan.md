@@ -2,32 +2,34 @@
 
 ## 1. 目标
 
-`ActorRuntime` 的测试要先验证角色本体，再验证远征/战斗整链路。
+先验证 `ActorRuntime` 本体，再验证它和战斗主链路的连接。
 
-优先检查：
+当前优先检查：
 - 属性权威是否正确
-- 装备是否通过 inventory 正确影响属性
+- 装备是否能通过 inventory 正确影响属性
 - 被动模板是否能生成正确的行为意图
 - `ActorRuntime` 是否已经具备独立可测性
 
 ## 2. 测试入口
 
 ### 手动面板
+
 - `scenes/devtest/panels/ActorRuntimeTestPanel.tscn`
 
 用途：
 - 快速构建单个 actor
 - 直接查看属性、buff、行为输出
 - 手动施加 damage / heal / weaken / tick
-- 手动查看 `build_turn_plan()` 的结果
+- 手动查看 `build_turn_plan()` 结果
 
 ### MCP 自动回归
+
 - `scenes/devtest/actor_runtime_smoke.tscn`
 
 用途：
 - 无 UI 交互
 - 启动后直接跑固定 smoke suite
-- 输出结构化结果，便于 MCP 调试自动化读取
+- 输出结构化结果，便于 MCP 自动读取
 
 ## 3. 当前 smoke case
 
@@ -43,27 +45,33 @@
 
 3. `observer_weaken_intent`
 - 观者能生成 `weaken` 施加意图
-- 目标处于 `weaken` 时，额外伤害效果能进入伤害计算通道
+- 目标处于 `weaken` 时，额外伤害能进入伤害计算通道
 
 4. `robot_heal_intent`
-- 机器人能为受伤友方生成治疗 follow-up effect
+- 机器人能为受伤友方生成治疗类 follow-up effect
+
+5. `cooldown_total_derived`
+- `cooldown_total <- spd` 的派生关系正确工作
 
 ## 4. 当前面板重点输出
 
 ### Actor Snapshot
+
 - 当前 HP / HP Max
 - 运行时属性快照
 - 当前 buff 快照
 - 当前装备列表
 
 ### Behavior Output
+
 - 当前 turn plan
 - damage 变化
 - follow-up effects
 - smoke suite 结果
 
 ### Validation Report
-- 只显示当前最关键的 PASS / FAIL / WAIT
+
+- 只显示当前最关键的 `PASS / FAIL / WAIT`
 
 ## 5. 约定
 
@@ -74,9 +82,9 @@
 
 ## 6. 后续扩展建议
 
-后面可继续追加的 case：
-- `hp_max` 动态变化时 `RuntimeHpAttribute` 的自动 clamp
-- `damage` 属性通道的临时 buff 生效与清理
+后面可继续补充的 case：
+- `hp_max` 动态变化时，`RuntimeHpAttribute` 的自动 clamp
+- `damage` 通道的临时 buff 生效与清理
 - `tick()` 后状态过期与移除
 - 装备变化时旧 modifier 是否正确移除
-- `cooldown_total <- spd` 下沉后是否正确更新
+- `cooldown_total <- spd` 在更多来源修改下是否稳定更新

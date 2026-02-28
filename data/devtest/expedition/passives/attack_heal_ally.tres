@@ -11,7 +11,6 @@ effect_type = &"heal_ally"
 target_rule = &"lowest_hp_percent_ally"
 params = {
 "heal_amount_flat": 8.0,
-"heal_amount_flat_is_placeholder": true,
 "heal_scale_attr": &"atk",
 "heal_scale_ratio": 0.2,
 "heal_target_rule": &"lowest_hp_percent_ally"
@@ -20,13 +19,14 @@ params = {
 [resource]
 script = ExtResource("1_passive")
 passive_id = &"attack_heal_ally"
-display_name = "鏀诲嚮鏃舵不鐤楀弸鏂?"
-description = "鏀诲嚮鏃舵不鐤椾竴涓弸鏂瑰崟浣嶃€傛不鐤楃洰鏍囦笌娌荤枟閲忚鍒欏悗缁敱琚姩妯℃澘+鎵ц鍣ㄥ畬鎴愩€?"
+display_name = "Support Repair"
+description = "On attack hit, heal the allied unit with the lowest HP percentage."
 trigger_id = &"on_attack_hit"
 effect_tags = Array[StringName]([&"heal_one_ally_on_attack"])
 params = {
 "heal_amount_flat": 8.0,
-"heal_amount_flat_is_placeholder": true,
+"heal_scale_attr": &"atk",
+"heal_scale_ratio": 0.2,
 "heal_target_rule": &"lowest_hp_percent_ally"
 }
 effects = Array[Resource]([SubResource("1_heal_ally")])

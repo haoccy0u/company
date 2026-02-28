@@ -1,0 +1,11 @@
+[gd_resource type="Resource" script_class="ItemData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://src/inventory/ItemData.gd" id="1_item"]
+
+[resource]
+script = ExtResource("1_item")
+item_id = &"iron_sword"
+item_name = "Iron Sword"
+description = "Devtest melee weapon."
+tags = Array[StringName]([&"equip_effect:add:atk:4"])
+max_stack = 1

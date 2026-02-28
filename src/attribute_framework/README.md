@@ -59,8 +59,7 @@
 
 - 角色模板基础属性来自 `ActorTemplate.base_attr_set`
 - 战斗开始时复制为 `ActorRuntime.attr_set`
-- `ActorRuntime` 运行期注入 `hp` 属性（战斗内生命值）
- - `ActorRuntime` 运行期注入通用属性：
+- `ActorRuntime` 运行期注入通用属性：
   - `hp`
   - `damage`
   - `heal`

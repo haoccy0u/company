@@ -7,6 +7,7 @@ const ActorRuntimeScene = preload("res://src/expedition_system/actor/ActorRuntim
 const AttributeBuffRef = preload("res://src/attribute_framework/AttributeBuff.gd")
 const ItemContainerRef = preload("res://src/inventory/ItemContainer.gd")
 const ItemDataRef = preload("res://src/inventory/ItemData.gd")
+const ItemDataResolverRef = preload("res://src/inventory/ItemDataResolver.gd")
 
 const DEVTEST_ACTOR_TEMPLATE_PATHS: Array[String] = [
 	"res://data/devtest/expedition/actors/observer.tres",
@@ -418,10 +419,12 @@ static func _make_equipment_container(item_ids: Array[StringName], slot_count: i
 	for item_id in item_ids:
 		if item_id.is_empty():
 			continue
-		var item := ItemDataRef.new()
-		item.item_id = item_id
-		item.item_name = String(item_id)
-		item.max_stack = 1
+		var item := ItemDataResolverRef.resolve(item_id)
+		if item == null:
+			item = ItemDataRef.new()
+			item.item_id = item_id
+			item.item_name = String(item_id)
+			item.max_stack = 1
 		container.try_insert(item, 1)
 	return container
 

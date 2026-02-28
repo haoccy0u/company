@@ -45,13 +45,12 @@ buff = SubResource("3_bonus_damage_buff")
 [resource]
 script = ExtResource("1_passive")
 passive_id = &"crush_joints"
-display_name = "绮夌鍏宠妭"
-description = "鏀诲嚮鍛戒腑鏃惰祴浜堟晫浜?绉掕櫄寮憋紙浼ゅ鍙樹负70%锛夈€傚澶勪簬铏氬急鐘舵€佺殑鏁屼汉閫犳垚棰濆浼ゅ銆?"
+display_name = "Crush Joints"
+description = "On attack hit, apply Weaken to the primary target. Attacks against weakened targets deal bonus damage."
 trigger_id = &"on_attack_hit"
 effect_tags = Array[StringName]([&"apply_weaken", &"bonus_damage_vs_weakened"])
 params = {
 "bonus_damage_ratio": 0.25,
-"bonus_damage_ratio_is_placeholder": true,
 "weak_duration_sec": 2.0,
 "weak_outgoing_damage_multiplier": 0.7
 }

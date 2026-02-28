@@ -1,0 +1,11 @@
+[gd_resource type="Resource" script_class="ItemData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://src/inventory/ItemData.gd" id="1_item"]
+
+[resource]
+script = ExtResource("1_item")
+item_id = &"hunter_bow"
+item_name = "Hunter Bow"
+description = "Devtest ranged weapon."
+tags = Array[StringName]([&"equip_effect:add:atk:3", &"equip_effect:add:spd:0.2"])
+max_stack = 1

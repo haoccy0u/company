@@ -8,6 +8,7 @@ const InventoryComponentRef = preload("res://src/inventory/InventoryComponent.gd
 const InventorySessionRef = preload("res://src/inventory/InventorySession.gd")
 const ItemContainerRef = preload("res://src/inventory/ItemContainer.gd")
 const ItemDataRef = preload("res://src/inventory/ItemData.gd")
+const ItemDataResolverRef = preload("res://src/inventory/ItemDataResolver.gd")
 const CursorWithItemScene = preload("res://src/cursor/cursor_with_item.tscn")
 const SquadConfigRef = preload("res://src/expedition_system/squad/SquadConfig.gd")
 const MemberConfigRef = preload("res://src/expedition_system/squad/MemberConfig.gd")
@@ -279,10 +280,12 @@ func _get_or_make_placeholder_item(item_id: StringName, item_name: String = "") 
 	var key := String(item_id)
 	if _placeholder_item_cache.has(key):
 		return _placeholder_item_cache[key]
-	var item := ItemDataRef.new()
-	item.item_id = item_id
-	item.item_name = item_name if not item_name.is_empty() else key
-	item.max_stack = 1
+	var item := ItemDataResolverRef.resolve(item_id)
+	if item == null:
+		item = ItemDataRef.new()
+		item.item_id = item_id
+		item.item_name = item_name if not item_name.is_empty() else key
+		item.max_stack = 1
 	_placeholder_item_cache[key] = item
 	return item
 
@@ -319,9 +322,9 @@ func _build_demo_templates() -> void:
 	_templates.clear()
 	_templates.append_array(_load_devtest_templates_from_resources())
 	if _templates.is_empty():
-		_templates.append(_make_template(&"observer", "观者", 110.0, 14.0, 6.0, 1.1, [&"basic_attack"], [&"crush_joints"], &"basic_auto"))
-		_templates.append(_make_template(&"robot", "机器人", 160.0, 10.0, 10.0, 0.9, [&"basic_attack"], [&"attack_heal_ally"], &"basic_auto"))
-		_templates.append(_make_template(&"hunter", "猎手", 100.0, 12.0, 4.0, 1.2, [&"shoot"], [&"focus"], &"basic_auto"))
+		_templates.append(_make_template(&"observer", "Observer", 110.0, 14.0, 6.0, 1.1, [&"basic_attack"], [&"crush_joints"], &"basic_auto"))
+		_templates.append(_make_template(&"robot", "Robot", 160.0, 10.0, 10.0, 0.9, [&"basic_attack"], [&"attack_heal_ally"], &"basic_auto"))
+		_templates.append(_make_template(&"hunter", "Hunter", 100.0, 12.0, 4.0, 1.2, [&"shoot"], [&"focus"], &"basic_auto"))
 		log_line("ActorTemplate resources not found, using built-in demo templates.")
 	else:
 		log_line("Loaded ActorTemplate resources from data/devtest/expedition/actors.")

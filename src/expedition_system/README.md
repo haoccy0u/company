@@ -1,117 +1,107 @@
-﻿# Expedition System / CombatEngine
+# Expedition System
 
-## 1. 目标与定位
+## 1. 目录定位
 
-`src/expedition_system` 是远征系统（Expedition）与战斗内核（CombatEngine）的实现目录。
+`src/expedition_system` 负责远征系统与战斗内核的实现。
 
-当前目标：
+当前主目标：
 - 支持小队配置与远征运行态
-- 支持远征事件推进（至少能触发 CombatEvent）
-- 支持单场战斗会话（BattleSession）与自动战斗 MVP（CombatEngine）
-- 支持战斗结果回写到远征小队状态（通过 `ResultApplier`）
-- 提供 `devtest` 测试工作台进行模块联调
+- 支持远征事件推进
+- 支持单场战斗会话与自动战斗 MVP
+- 支持战斗结果回写到小队运行态
+- 提供 devtest 工作台用于联调
 
-## 2. 当前实现状态（概览）
+## 2. 当前状态
 
-已实现（可测试）：
-- `squad/`：小队配置态与远征运行态（`SquadConfig -> SquadRuntime`）
+已实现：
+- `squad/`：`SquadConfig -> SquadRuntime`
 - `expedition/`：远征会话骨架、事件选择、CombatEvent 触发
-- `battle/`：战斗输入组装、战斗会话、自动战斗 MVP、战后回写（最小版）
-- `battle/policy/`：战后 HP 策略（`carry_over` / `reset_full`）
-- `devtest`：通用测试工作台 + 小队配置面板 + 远征面板
+- `battle/`：战斗输入组装、自动战斗 MVP、战后回写
+- `actor/`：角色模板、战斗输入条目、场景化运行时、行为测试基建
+- `battle/policy/`：HP 策略
 
-未完成（后续阶段）：
-- 更完整的动作系统（技能选择、目标规则扩展）
-- 通用被动执行器（当前仍有部分 `passive_id` 分支）
-- 敌人模板资源化（当前敌方生成仍有程序化占位）
-- 更完整的 BattleResult 字段（长期状态、资源、掉落等）
+未完全收敛：
+- `observer / robot` 测试资源仍偏 devtest
+- 装备效果与被动资源入口仍有过渡实现
+- 敌人模板还未完全资源化
+- 缺少更稳定的整链路自动回归
 
-## 3. 目录结构（当前实际）
+## 3. 文档结构
 
 ```text
 src/expedition_system/
   README.md
-  CHARACTER_DATA_FLOW.md
+  docs/
+    architecture/
+      TARGET_ARCHITECTURE.md
+      CHARACTER_DATA_FLOW.md
+    plans/
+      actor_runtime_plan.md
+      actor_runtime_test_plan.md
+      actor_autonomy_test_plan.md
+      combat_engine_mvp_plan.md
   actor/
     README.md
-    ActorTemplate.gd
-    ActorEntry.gd
-    ActorResult.gd
-    ActorRuntime.gd
-    ActorRuntime.tscn
-    ActorInventoryComponent.gd
   squad/
     README.md
-    MemberConfig.gd
-    MemberRuntime.gd
-    SquadConfig.gd
-    SquadRuntime.gd
-    SquadRuntimeFactory.gd
   expedition/
     README.md
-    ExpeditionSession.gd
-    ExpeditionLocationDef.gd
-    EventSelector.gd
-    CombatEventDef.gd
-    NonCombatEventStub.gd
   battle/
     README.md
-    COMBAT_ENGINE_MVP_PLAN.md
-    BattleSession.gd
-    CombatEngine.gd
-    BattleBuilder.gd
-    BattleStart.gd
-    BattleResult.gd
-    ResultApplier.gd
-    PassiveTemplate.gd
     policy/
       README.md
-      PostBattleHpPolicy.gd
-      CarryOverHpPolicy.gd
-      ResetFullHpPolicy.gd
 ```
 
-## 4. 模块边界（必须遵守）
+文档约定：
+- 根 `README.md`：总览和阅读入口
+- `docs/architecture/`：跨模块的长期说明
+- `docs/plans/`：阶段计划与测试方案
+- 各模块 `README.md`：只写该模块职责、边界、入口
+
+## 4. 推荐阅读顺序
+
+如果要快速建立全局上下文，建议按这个顺序读：
+
+1. `src/expedition_system/docs/architecture/TARGET_ARCHITECTURE.md`
+2. `src/expedition_system/docs/architecture/CHARACTER_DATA_FLOW.md`
+3. `src/expedition_system/actor/README.md`
+4. `src/expedition_system/squad/README.md`
+5. `src/expedition_system/expedition/README.md`
+6. `src/expedition_system/battle/README.md`
+7. `src/expedition_system/docs/plans/actor_runtime_plan.md`
+
+如果当前重点是 `ActorRuntime`，再补读：
+- `src/expedition_system/docs/plans/actor_runtime_test_plan.md`
+- `src/expedition_system/docs/plans/actor_autonomy_test_plan.md`
+- `src/attribute_framework/README.md`
+
+## 5. 模块边界
 
 ### `actor/`
+
 - 管理角色模板、战斗输入条目、战斗运行时实例与角色战斗组件
 - 是 `squad/` 和 `battle/` 之间的角色层桥梁
 
 ### `squad/`
+
 - 管理出发前配置与远征期小队状态
 - 不做战斗结算
 
 ### `expedition/`
+
 - 管理远征推进、事件触发、战斗入口
 - 不做战斗数值结算
 
 ### `battle/`
+
 - 管理单场战斗输入、运行、结果、回写策略
 - `CombatEngine` 是单场规则裁决者
-- 当前统一由 `CombatEngine` 实例化 `ActorRuntime.tscn`（`ActorTemplate` 保持纯数据模板）
 
-## 5. 核心数据流（当前实现）
+## 6. 当前阶段结论
 
-1. `SquadConfigTestPanel` 构建 `SquadConfig`
-2. `SquadRuntimeFactory.from_config()` 生成 `SquadRuntime`
-3. `ExpeditionSession.setup(location, squad_runtime)` 建立远征
-4. `ExpeditionSession.advance()` 触发 `CombatEventDef`
-5. `BattleBuilder.from_combat_event()` 组装 `BattleStart`
-6. `BattleSession` 调用 `CombatEngine` 跑自动战斗
-7. `BattleResult` 产出后由 `ResultApplier` 回写 `SquadRuntime`
+`ActorRuntime` 已经进入“模板与资源收敛”阶段。
 
-说明（当前过渡期）：
-- 装备数据推荐通过 `ItemContainer`（`equipment_container`）在 `squad -> battle` 链路传递
-- `equipment_ids` 仍保留为兼容字段，后续可移除
-
-更多细节见：`src/expedition_system/CHARACTER_DATA_FLOW.md`
-
-## 6. 相关阅读
-
-- `src/expedition_system/actor/README.md`
-- `src/expedition_system/squad/README.md`
-- `src/expedition_system/expedition/README.md`
-- `src/expedition_system/battle/README.md`
-- `src/expedition_system/battle/COMBAT_ENGINE_MVP_PLAN.md`
-- `src/expedition_system/TARGET_ARCHITECTURE.md`
-- `src/attribute_framework/README.md`
+可以继续推进，但当前更值得优先处理的是：
+- 收敛文档与阅读入口
+- 清理 devtest 级资源入口
+- 补整链路验证

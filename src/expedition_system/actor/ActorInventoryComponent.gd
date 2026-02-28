@@ -2,6 +2,7 @@ extends InventoryComponent
 class_name ActorInventoryComponent
 
 const ItemDataRef = preload("res://src/inventory/ItemData.gd")
+const ItemDataResolverRef = preload("res://src/inventory/ItemDataResolver.gd")
 const AttributeBuffRef = preload("res://src/attribute_framework/AttributeBuff.gd")
 
 const EQUIP_BUFF_PREFIX := "equip::"
@@ -52,7 +53,7 @@ func load_equipment_ids(equipment_ids: Array[StringName]) -> void:
 		if slot_index >= container.slots.size():
 			break
 
-		var item := _get_or_make_placeholder_item(equip_id)
+		var item := _resolve_or_make_item(equip_id)
 		var slot := container.slots[slot_index]
 		if slot != null:
 			slot.clear()
@@ -81,9 +82,12 @@ func rebuild_equipment_effects() -> void:
 	if runtime_attribute_set == null:
 		return
 
-	var item_ids := collect_equipped_item_ids()
-	for item_id in item_ids:
-		var effects: Array = _resolve_item_effects(item_id)
+	for slot in container.slots:
+		if slot == null or slot.is_empty() or slot.item == null:
+			continue
+		var item: ItemData = slot.item
+		var item_id: StringName = item.item_id
+		var effects: Array = _resolve_item_effects(item)
 		for i in range(effects.size()):
 			var effect: Dictionary = effects[i]
 			_apply_effect(item_id, i, effect)
@@ -116,25 +120,23 @@ func _get_or_make_placeholder_item(item_id: StringName) -> ItemData:
 	return item
 
 
-func _resolve_item_effects(item_id: StringName) -> Array:
-	# Minimal devtest mapping. Replace with real item-data driven resolver later.
-	match item_id:
-		&"iron_sword":
-			return [
-				{"attr": &"atk", "op": &"add", "value": 4.0},
-			]
-		&"wood_shield":
-			return [
-				{"attr": &"def", "op": &"add", "value": 3.0},
-				{"attr": &"hp_max", "op": &"add", "value": 10.0},
-			]
-		&"hunter_bow":
-			return [
-				{"attr": &"atk", "op": &"add", "value": 3.0},
-				{"attr": &"spd", "op": &"add", "value": 0.2},
-			]
-		_:
-			return []
+func _resolve_or_make_item(item_id: StringName) -> ItemData:
+	var resolved: ItemData = ItemDataResolverRef.resolve(item_id)
+	if resolved != null:
+		return resolved
+	return _get_or_make_placeholder_item(item_id)
+
+
+func _resolve_item_effects(item: ItemData) -> Array:
+	if item == null:
+		return []
+	var effects: Array[Dictionary] = ItemDataResolverRef.get_equipment_effects(item)
+	if not effects.is_empty():
+		return effects
+	var fallback_item: ItemData = ItemDataResolverRef.resolve(item.item_id)
+	if fallback_item == null or fallback_item == item:
+		return []
+	return ItemDataResolverRef.get_equipment_effects(fallback_item)
 
 
 func _apply_effect(item_id: StringName, effect_index: int, effect: Dictionary) -> void:

@@ -1,7 +1,8 @@
 extends RefCounted
 class_name PassiveResolver
 
-const PASSIVE_RESOURCE_DIR := "res://data/devtest/expedition/passives/"
+const PassiveTemplateRef = preload("res://src/expedition_system/battle/PassiveTemplate.gd")
+const DEFAULT_SEARCH_ROOTS: Array[String] = ["res://data"]
 
 static var _passive_cache: Dictionary = {}
 static var _known_status_ids: Dictionary = {}
@@ -19,13 +20,14 @@ static func get_passive(passive_id: StringName):
 	if _passive_cache.has(key):
 		return _passive_cache[key]
 
-	var path := "%s%s.tres" % [PASSIVE_RESOURCE_DIR, key]
-	var res = load(path)
-	if res != null and res is Resource:
-		_passive_cache[key] = res
-		_register_status_ids(res)
-		return res
-	push_warning("PassiveResolver: failed to load passive_id=%s | path=%s" % [key, path])
+	for root_dir in DEFAULT_SEARCH_ROOTS:
+		var res = _find_passive_in_dir(passive_id, root_dir)
+		if res != null:
+			_passive_cache[key] = res
+			_register_status_ids(res)
+			return res
+
+	push_warning("PassiveResolver: failed to resolve passive_id=%s in roots=%s" % [key, DEFAULT_SEARCH_ROOTS])
 	return null
 
 
@@ -65,3 +67,39 @@ static func _register_status_ids(passive_def) -> void:
 			continue
 		if effect.status_id != StringName():
 			_known_status_ids[String(effect.status_id)] = true
+
+
+static func _find_passive_in_dir(passive_id: StringName, root_dir: String):
+	if passive_id.is_empty():
+		return null
+
+	var dir: DirAccess = DirAccess.open(root_dir)
+	if dir == null:
+		return null
+
+	dir.list_dir_begin()
+	while true:
+		var entry_name: String = dir.get_next()
+		if entry_name.is_empty():
+			break
+		if entry_name.begins_with("."):
+			continue
+
+		var path := "%s/%s" % [root_dir, entry_name]
+		if dir.current_is_dir():
+			var nested = _find_passive_in_dir(passive_id, path)
+			if nested != null:
+				dir.list_dir_end()
+				return nested
+			continue
+
+		if not entry_name.ends_with(".tres") and not entry_name.ends_with(".res"):
+			continue
+
+		var loaded: Resource = ResourceLoader.load(path)
+		if loaded is PassiveTemplateRef and (loaded as PassiveTemplate).passive_id == passive_id:
+			dir.list_dir_end()
+			return loaded
+
+	dir.list_dir_end()
+	return null
