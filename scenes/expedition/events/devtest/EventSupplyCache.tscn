@@ -1,0 +1,11 @@
+[gd_scene format=3 uid="uid://ud77gsc8r1en"]
+
+[ext_resource type="Script" uid="uid://bslqxsk8meoxu" path="res://src/expedition_system/expedition/event/ExpeditionEventBase.gd" id="1_base"]
+
+[node name="EventSupplyCache" type="Node" unique_id=1041419460]
+script = ExtResource("1_base")
+event_id = &"supply_cache"
+event_type = &"supply"
+auto_complete_delay_seconds = 5.0
+
+[node name="Components" type="Node" parent="." unique_id=617268253]

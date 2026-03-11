@@ -1,0 +1,21 @@
+[gd_resource type="Resource" script_class="SquadRuntime" format=3 uid="uid://b3lti1iyjpiqq"]
+
+[ext_resource type="Script" uid="uid://ck5rtqynhrsy2" path="res://src/expedition_system/squad/SquadRuntime.gd" id="1_squad"]
+[ext_resource type="Script" uid="uid://dul415120at0s" path="res://src/expedition_system/squad/MemberRuntime.gd" id="2_member"]
+
+[sub_resource type="Resource" id="Resource_observer"]
+script = ExtResource("2_member")
+member_id = &"observer_member"
+actor_id = &"observer"
+equipment_ids = Array[StringName]([&"iron_sword"])
+
+[sub_resource type="Resource" id="Resource_robot"]
+script = ExtResource("2_member")
+member_id = &"robot_member"
+actor_id = &"robot"
+equipment_ids = Array[StringName]([&"wood_shield"])
+
+[resource]
+script = ExtResource("1_squad")
+source_squad_id = &"expedition_v2_default_squad"
+members = Array[ExtResource("2_member")]([SubResource("Resource_observer"), SubResource("Resource_robot")])

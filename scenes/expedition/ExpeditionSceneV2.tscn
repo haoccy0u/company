@@ -1,0 +1,12 @@
+[gd_scene format=3 uid="uid://jhgdlq5jgb6"]
+
+[ext_resource type="PackedScene" uid="uid://c0bq485k3ma02" path="res://src/expedition_system/expedition/runtime/ExpeditionRuntime.tscn" id="1_runtime_scene"]
+[ext_resource type="Script" uid="uid://cx75c803c7rws" path="res://src/expedition_system/expedition/ui_debug/ExpeditionImGuiDebugPanel.gd" id="2_debug_panel_script"]
+
+[node name="ExpeditionSceneV2" type="Node" unique_id=2003804363]
+
+[node name="ExpeditionRuntime" parent="." unique_id=50472118 instance=ExtResource("1_runtime_scene")]
+
+[node name="ExpeditionImGuiDebugPanel" type="Node" parent="." unique_id=1958261130]
+script = ExtResource("2_debug_panel_script")
+runtime_path = NodePath("../ExpeditionRuntime")

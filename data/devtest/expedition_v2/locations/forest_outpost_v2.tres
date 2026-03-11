@@ -1,0 +1,10 @@
+[gd_resource type="Resource" script_class="ExpeditionLocationDef" load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://src/expedition_system/expedition/content/ExpeditionLocationDef.gd" id="1_location"]
+[ext_resource type="Resource" path="res://data/devtest/expedition_v2/events/forest_outpost_event_pool.tres" id="2_pool"]
+
+[resource]
+script = ExtResource("1_location")
+location_id = &"forest_outpost_v2"
+event_pool = ExtResource("2_pool")
+tags = Array[StringName]([&"forest", &"outpost"])

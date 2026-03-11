@@ -1,0 +1,8 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://src/expedition_system/expedition/event/ExpeditionEventBase.gd" id="1_script"]
+
+[node name="ExpeditionEventBase" type="Node"]
+script = ExtResource("1_script")
+
+[node name="Components" type="Node" parent="."]
