@@ -1,2 +1,0 @@
-extends ActorInstance
-class_name MemberRuntime

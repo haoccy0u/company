@@ -1,0 +1,36 @@
+[gd_resource type="Resource" script_class="ActorCatalog" format=3]
+
+[ext_resource type="Script" path="res://src/actor_system/ActorCatalog.gd" id="1_catalog_script"]
+[ext_resource type="Script" path="res://src/actor_system/ActorDefinition.gd" id="2_actor_def_script"]
+
+[sub_resource type="Resource" id="Resource_observer"]
+script = ExtResource("2_actor_def_script")
+actor_id = &"observer"
+display_name = "Observer"
+description = "Default expedition observer actor."
+strength = 6.0
+constitution = 10.0
+dexterity = 7.0
+perception = 9.0
+will = 8.0
+intelligence = 10.0
+luck = 5.0
+skill_ids = Array[StringName]([&"observe"])
+
+[sub_resource type="Resource" id="Resource_robot"]
+script = ExtResource("2_actor_def_script")
+actor_id = &"robot"
+display_name = "Robot"
+description = "Default expedition robot actor."
+strength = 9.0
+constitution = 12.0
+dexterity = 5.0
+perception = 6.0
+will = 7.0
+intelligence = 6.0
+luck = 3.0
+skill_ids = Array[StringName]([&"guard"])
+
+[resource]
+script = ExtResource("1_catalog_script")
+actors = Array[ExtResource("2_actor_def_script")]([SubResource("Resource_observer"), SubResource("Resource_robot")])

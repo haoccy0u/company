@@ -27,14 +27,17 @@ var _step_records: Array = []
 var _result_history: Array = []
 var _latest_result: RefCounted
 var _event_host: Node
+var _squad_host: Node
 
 
 func _ready() -> void:
 	_ensure_event_host()
+	_ensure_squad_host()
 
 
 func _exit_tree() -> void:
 	_clear_current_event_instance()
+	_clear_squad_runtime()
 
 
 func start_new_run(request: RefCounted) -> bool:
@@ -45,15 +48,15 @@ func start_new_run(request: RefCounted) -> bool:
 		push_warning("ExpeditionRuntime.start_new_run blocked: current run still active")
 		return false
 
-	var squad_runtime = request.squad.make_run_instance()
-	if squad_runtime == null:
-		push_error("ExpeditionRuntime.start_new_run failed: squad runtime build failed")
-		return false
-
 	var run_seed: int = request.run_seed if request.run_seed != 0 else _make_seed()
 	var sequence: Array[PackedScene] = _build_sequence(request.location, request.difficulty, request.options, run_seed)
 	if sequence.is_empty():
 		push_error("ExpeditionRuntime.start_new_run failed: generated sequence is empty")
+		return false
+
+	var squad_runtime = _build_squad_runtime(request)
+	if squad_runtime == null:
+		push_error("ExpeditionRuntime.start_new_run failed: squad runtime build failed")
 		return false
 
 	_reset_active_state()
@@ -207,7 +210,7 @@ func _end_run(reason: StringName) -> RefCounted:
 	result.run_seed = _state.run_seed
 	result.reward_snapshot = _build_reward_snapshot(reason)
 	result.step_records = _step_records.duplicate()
-	result.final_squad_snapshot = _state.squad_runtime.duplicate(true) if _state.squad_runtime != null else null
+	result.final_squad_snapshot = _snapshot_squad_runtime()
 
 	_latest_result = result
 	_result_history.append(result)
@@ -238,6 +241,7 @@ func _make_seed() -> int:
 
 func _reset_active_state() -> void:
 	_clear_current_event_instance()
+	_clear_squad_runtime()
 	_step_records.clear()
 	_latest_result = null
 	_location = null
@@ -378,6 +382,19 @@ func _ensure_event_host() -> void:
 	add_child(_event_host)
 
 
+func _ensure_squad_host() -> void:
+	if _squad_host != null and is_instance_valid(_squad_host):
+		return
+
+	_squad_host = get_node_or_null("SquadHost")
+	if _squad_host != null:
+		return
+
+	_squad_host = Node.new()
+	_squad_host.name = "SquadHost"
+	add_child(_squad_host)
+
+
 func _clear_current_event_instance() -> void:
 	if _current_event_instance == null:
 		return
@@ -396,3 +413,48 @@ func _clear_current_event_instance() -> void:
 	_current_event_scene = null
 	_current_event_id = &""
 	_current_event_type = &""
+
+
+func _build_squad_runtime(request: RefCounted) -> Node:
+	if request == null or request.squad_scene == null:
+		return null
+
+	_ensure_squad_host()
+	var squad_node: Node = request.squad_scene.instantiate()
+	if squad_node == null:
+		return null
+	if not squad_node.has_method("build_from_roster"):
+		push_error("ExpeditionRuntime: squad scene missing build_from_roster()")
+		squad_node.queue_free()
+		return null
+
+	_squad_host.add_child(squad_node)
+	var built: bool = squad_node.call(
+		"build_from_roster",
+		request.player_roster,
+		request.selected_player_actor_ids,
+		request.actor_catalog
+	)
+	if not built:
+		squad_node.queue_free()
+		return null
+	return squad_node
+
+
+func _clear_squad_runtime() -> void:
+	var squad_runtime: Node = _state.squad_runtime
+	if squad_runtime != null and is_instance_valid(squad_runtime):
+		squad_runtime.queue_free()
+	_state.squad_runtime = null
+
+
+func _snapshot_squad_runtime() -> Dictionary:
+	var squad_runtime: Node = _state.squad_runtime
+	if squad_runtime == null or not is_instance_valid(squad_runtime):
+		return {}
+	if not squad_runtime.has_method("export_run_snapshot"):
+		return {}
+	var snapshot: Variant = squad_runtime.call("export_run_snapshot")
+	if snapshot is Dictionary:
+		return (snapshot as Dictionary).duplicate(true)
+	return {}

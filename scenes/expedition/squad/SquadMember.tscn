@@ -1,0 +1,11 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://src/expedition_system/squad/SquadMember.gd" id="1_member_script"]
+[ext_resource type="Script" path="res://src/attribute_framework/AttributeComponent.gd" id="2_attr_component_script"]
+
+[node name="SquadMember" type="Node"]
+script = ExtResource("1_member_script")
+
+[node name="AttributeComponent" type="Node" parent="."]
+unique_name_in_owner = true
+script = ExtResource("2_attr_component_script")

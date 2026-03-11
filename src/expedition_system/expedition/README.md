@@ -11,7 +11,7 @@ Current scope:
 - event scene completes itself and reports payload back to runtime
 - choose continue or retreat between events
 - end run and produce a typed result record
-- use `SquadRuntime` template resource as run input (`make_run_instance` at start)
+- use `Squad` scene runtime as run input (`PackedScene.instantiate` + roster build)
 
 Deferred:
 - battle event integration

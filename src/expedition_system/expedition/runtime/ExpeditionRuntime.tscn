@@ -6,3 +6,5 @@
 script = ExtResource("1_runtime")
 
 [node name="EventHost" type="Node" parent="."]
+
+[node name="SquadHost" type="Node" parent="."]
