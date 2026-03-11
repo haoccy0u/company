@@ -92,8 +92,11 @@ func _start_next_component() -> void:
 
 func _on_component_completed(component_payload: Dictionary) -> void:
 	var safe_payload: Dictionary = component_payload.duplicate(true)
+	var component_name: String = ""
+	if _current_component != null:
+		component_name = String(_current_component.name)
 	(_payload["component_results"] as Array).append({
-		"component_name": _current_component.name if _current_component != null else "",
+		"component_name": component_name,
 		"result": safe_payload,
 	})
 	_current_component = null
