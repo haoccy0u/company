@@ -1,2 +1,2 @@
-extends "res://src/expedition_system/actor/model/UnitInstance.gd"
+extends ActorInstance
 class_name MemberRuntime

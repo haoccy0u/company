@@ -1,5 +1,5 @@
 extends Resource
-class_name UnitInstance
+class_name ActorInstance
 
 @export var unit_uid: StringName = &""
 @export var member_id: StringName = &""

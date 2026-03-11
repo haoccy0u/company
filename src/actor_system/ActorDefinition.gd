@@ -22,4 +22,3 @@ class_name ActorDefinition
 @export var passive_ids: Array[StringName] = []
 @export var ai_profile_id: StringName = &""
 @export var capture_profile_id: StringName = &""
-
