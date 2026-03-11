@@ -1,21 +1,20 @@
-class_name SquadRuntime extends Resource
-
-const ActorDefResolverRef = preload("res://src/expedition_system/actor/ActorDefResolver.gd")
+extends Resource
+class_name SquadRuntime
 
 @export var source_squad_id: StringName
-@export var members: Array[MemberRuntime] = []
+@export var members: Array[Resource] = []
 @export var shared_res: Dictionary = {}
 @export var long_states: Dictionary = {}
 
 
-func find_member(member_id: StringName) -> MemberRuntime:
+func find_member(member_id: StringName) -> Resource:
 	for member in members:
 		if member != null and member.member_id == member_id:
 			return member
 	return null
 
 
-func find_member_by_unit_uid(unit_uid: StringName) -> MemberRuntime:
+func find_member_by_unit_uid(unit_uid: StringName) -> Resource:
 	if unit_uid.is_empty():
 		return null
 	for member in members:
@@ -31,7 +30,7 @@ func has_living_members() -> bool:
 	return false
 
 
-func make_run_instance() -> SquadRuntime:
+func make_run_instance() -> Resource:
 	if members.is_empty():
 		push_error("SquadRuntime.make_run_instance failed: members is empty")
 		return null
@@ -62,14 +61,6 @@ func make_run_instance() -> SquadRuntime:
 				return null
 			seen_unit_uids[unit_uid_key] = true
 
-		var actor_def := ActorDefResolverRef.resolve(member.actor_id)
-		if actor_def == null:
-			push_error("SquadRuntime.make_run_instance failed: actor def not found | member_id=%s actor_id=%s" % [
-				String(member.member_id),
-				String(member.actor_id),
-			])
-			return null
-
 	var run_any := duplicate(true)
 	if not (run_any is SquadRuntime):
 		push_error("SquadRuntime.make_run_instance failed: duplicate type mismatch")
@@ -84,15 +75,13 @@ func make_run_instance() -> SquadRuntime:
 			continue
 
 		_ensure_member_unit_uid(run.source_squad_id, member)
-		var actor_max_hp: float = ActorDefResolverRef.get_default_max_hp(member.actor_id)
-		if actor_max_hp <= 0.0:
-			push_error("SquadRuntime.make_run_instance failed: invalid actor max hp | member_id=%s actor_id=%s" % [
+		if member.max_hp <= 0.0:
+			push_error("SquadRuntime.make_run_instance failed: invalid member max hp | member_id=%s actor_id=%s" % [
 				String(member.member_id),
 				String(member.actor_id),
 			])
 			return null
 
-		member.max_hp = actor_max_hp
 		member.set_current_hp(member.get_init_hp(member.max_hp))
 		member.injury_flags = {}
 		member.resources = {}
@@ -117,7 +106,7 @@ func inc_shared_int(key: StringName, delta: int = 1) -> int:
 	return next_value
 
 
-func _ensure_member_unit_uid(source_id: StringName, member: MemberRuntime) -> void:
+func _ensure_member_unit_uid(source_id: StringName, member: Resource) -> void:
 	if member == null or not member.unit_uid.is_empty():
 		return
 	if not source_id.is_empty():

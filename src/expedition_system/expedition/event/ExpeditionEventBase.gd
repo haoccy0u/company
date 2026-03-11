@@ -1,4 +1,5 @@
-class_name ExpeditionEventBase extends Node
+extends Node
+class_name ExpeditionEventBase
 
 signal completed(payload: Dictionary)
 
@@ -53,7 +54,7 @@ func start(context: Dictionary) -> void:
 
 
 func _increment_debug_counter(context: Dictionary) -> void:
-	var squad_runtime: SquadRuntime = context.get("squad_runtime", null)
+	var squad_runtime = context.get("squad_runtime", null)
 	if squad_runtime == null:
 		return
 	squad_runtime.inc_shared_int(debug_counter_key, 1)

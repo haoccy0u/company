@@ -1,4 +1,5 @@
-class_name ExpeditionRuntime extends Node
+extends Node
+class_name ExpeditionRuntime
 
 const RunStateRef = preload("res://src/expedition_system/expedition/model/ExpeditionRunState.gd")
 const StepRecordRef = preload("res://src/expedition_system/expedition/model/ExpeditionStepRecord.gd")
@@ -9,22 +10,22 @@ const END_REASON_RETREAT: StringName = &"retreat"
 
 signal run_started(run_id: StringName)
 signal event_entered(step_index: int, event_id: StringName, event_type: StringName)
-signal event_completed(step_index: int, step_record: ExpeditionStepRecord)
+signal event_completed(step_index: int, step_record: RefCounted)
 signal decision_required(step_index: int)
-signal run_ended(result: ExpeditionResult)
+signal run_ended(result: RefCounted)
 
 @export var auto_destroy_on_retreat: bool = true
 @export var auto_enter_first_event: bool = true
 
-var _state: ExpeditionRunState = RunStateRef.new()
-var _location: ExpeditionLocationDef
+var _state: RefCounted = RunStateRef.new()
+var _location: Resource
 var _current_event_scene: PackedScene
 var _current_event_instance: Node
 var _current_event_id: StringName = &""
 var _current_event_type: StringName = &""
-var _step_records: Array[ExpeditionStepRecord] = []
-var _result_history: Array[ExpeditionResult] = []
-var _latest_result: ExpeditionResult
+var _step_records: Array = []
+var _result_history: Array = []
+var _latest_result: RefCounted
 var _event_host: Node
 
 
@@ -36,7 +37,7 @@ func _exit_tree() -> void:
 	_clear_current_event_instance()
 
 
-func start_new_run(request: ExpeditionStartRequest) -> bool:
+func start_new_run(request: RefCounted) -> bool:
 	if request == null or not request.is_valid():
 		push_error("ExpeditionRuntime.start_new_run failed: invalid request")
 		return false
@@ -44,7 +45,7 @@ func start_new_run(request: ExpeditionStartRequest) -> bool:
 		push_warning("ExpeditionRuntime.start_new_run blocked: current run still active")
 		return false
 
-	var squad_runtime := request.squad.make_run_instance()
+	var squad_runtime = request.squad.make_run_instance()
 	if squad_runtime == null:
 		push_error("ExpeditionRuntime.start_new_run failed: squad runtime build failed")
 		return false
@@ -120,18 +121,18 @@ func choose_continue() -> bool:
 	return enter_next_event() != null
 
 
-func choose_retreat() -> ExpeditionResult:
+func choose_retreat() -> RefCounted:
 	if _state.phase != RunStateRef.PHASE_WAITING_DECISION:
 		push_warning("ExpeditionRuntime.choose_retreat blocked: phase is not waiting_decision")
 		return null
 
-	var result: ExpeditionResult = _end_run(END_REASON_RETREAT)
+	var result: RefCounted = _end_run(END_REASON_RETREAT)
 	if auto_destroy_on_retreat and is_inside_tree():
 		queue_free()
 	return result
 
 
-func get_state() -> ExpeditionRunState:
+func get_state() -> RefCounted:
 	return _state
 
 
@@ -143,16 +144,16 @@ func get_current_event() -> Node:
 	return _current_event_instance
 
 
-func get_latest_result() -> ExpeditionResult:
+func get_latest_result() -> RefCounted:
 	return _latest_result
 
 
-func get_result_history() -> Array[ExpeditionResult]:
+func get_result_history() -> Array:
 	return _result_history.duplicate()
 
 
 func _build_sequence(
-	location: ExpeditionLocationDef,
+	location: Resource,
 	difficulty: int,
 	options: Dictionary,
 	seed: int
@@ -181,19 +182,19 @@ func _build_sequence(
 	return out
 
 
-func _collect_source_scenes(location: ExpeditionLocationDef, difficulty: int) -> Array[PackedScene]:
+func _collect_source_scenes(location: Resource, difficulty: int) -> Array[PackedScene]:
 	if location == null or location.event_pool == null:
 		return []
 	return location.event_pool.get_scenes_for_difficulty(difficulty)
 
 
-func _default_sequence_length(location: ExpeditionLocationDef) -> int:
+func _default_sequence_length(location: Resource) -> int:
 	if location != null and location.event_pool != null:
 		return maxi(location.event_pool.default_sequence_length, 1)
 	return 1
 
 
-func _end_run(reason: StringName) -> ExpeditionResult:
+func _end_run(reason: StringName) -> RefCounted:
 	if _state.phase == RunStateRef.PHASE_ENDED and _latest_result != null:
 		return _latest_result
 

@@ -1,4 +1,5 @@
-class_name UnitInstance extends Resource
+extends Resource
+class_name UnitInstance
 
 @export var unit_uid: StringName = &""
 @export var member_id: StringName = &""

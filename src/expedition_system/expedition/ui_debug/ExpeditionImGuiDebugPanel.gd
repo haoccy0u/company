@@ -1,6 +1,10 @@
-class_name ExpeditionImGuiDebugPanel extends Node
+extends Node
+class_name ExpeditionImGuiDebugPanel
 
 const StartRequestRef = preload("res://src/expedition_system/expedition/model/ExpeditionStartRequest.gd")
+const RuntimeRef = preload("res://src/expedition_system/expedition/runtime/ExpeditionRuntime.gd")
+const LocationDefRef = preload("res://src/expedition_system/expedition/content/ExpeditionLocationDef.gd")
+const SquadRuntimeRef = preload("res://src/expedition_system/squad/SquadRuntime.gd")
 
 const DEFAULT_LOCATION_PATH := "res://data/devtest/expedition_v2/locations/forest_outpost_v2.tres"
 const DEFAULT_SQUAD_PATH := "res://data/devtest/expedition_v2/squads/default_squad_runtime.tres"
@@ -15,13 +19,13 @@ const INPUT_TEXT_CAPACITY: int = 256
 @export var default_sequence_length: int = 3
 @export var default_seed: int = -1
 @export var default_squad_path: String = DEFAULT_SQUAD_PATH
-@export var squad_runtime_override: SquadRuntime
+@export var squad_runtime_override: Resource
 
-var _runtime: ExpeditionRuntime
+var _runtime: Node
 var _imgui: Object
 var _debug_visible: bool = true
 var _last_action_message: String = "idle"
-var _last_result: ExpeditionResult
+var _last_result: RefCounted
 
 var _location_path_input: Array[String] = [DEFAULT_LOCATION_PATH]
 var _difficulty_input: Array[int] = [1]
@@ -56,7 +60,7 @@ func _exit_tree() -> void:
 	_disconnect_runtime_signals()
 
 
-func set_runtime(node: ExpeditionRuntime) -> void:
+func set_runtime(node: Node) -> void:
 	if _runtime == node:
 		return
 	_disconnect_runtime_signals()
@@ -103,9 +107,9 @@ func _resolve_runtime_from_path() -> void:
 	if runtime_path.is_empty():
 		return
 	var node := get_node_or_null(runtime_path)
-	if node == null or not (node is ExpeditionRuntime):
+	if node == null or node.get_script() != RuntimeRef:
 		return
-	set_runtime(node as ExpeditionRuntime)
+	set_runtime(node)
 
 
 func _has_runtime() -> bool:
@@ -160,7 +164,7 @@ func _draw_runtime_state() -> void:
 		_imgui.Text("action: %s" % _last_action_message)
 		return
 
-	var state: ExpeditionRunState = _runtime.get_state()
+	var state = _runtime.get_state()
 	_imgui.Text("run_id: %s" % String(state.run_id))
 	_imgui.Text("phase: %s" % String(state.phase))
 	_imgui.Text("step_index: %d" % state.step_index)
@@ -209,7 +213,7 @@ func _draw_actions() -> void:
 func _draw_result_snapshot() -> void:
 	_imgui.SeparatorText("Latest Result")
 
-	var result: ExpeditionResult = _last_result
+	var result = _last_result
 	if result == null and _has_runtime():
 		result = _runtime.get_latest_result()
 
@@ -228,7 +232,7 @@ func _handle_start_new_run() -> void:
 		_last_action_message = "start_new_run blocked: runtime missing"
 		return
 
-	var request: ExpeditionStartRequest = _build_start_request()
+	var request = _build_start_request()
 	if request == null:
 		_last_action_message = "start_new_run blocked: invalid request"
 		return
@@ -251,7 +255,7 @@ func _handle_choose_retreat() -> void:
 	if not _has_runtime():
 		_last_action_message = "choose_retreat blocked: runtime missing"
 		return
-	var result: ExpeditionResult = _runtime.choose_retreat()
+	var result = _runtime.choose_retreat()
 	if result == null:
 		_last_action_message = "choose_retreat -> null"
 		return
@@ -262,17 +266,17 @@ func _handle_choose_retreat() -> void:
 		_runtime = null
 
 
-func _build_start_request() -> ExpeditionStartRequest:
+func _build_start_request() -> RefCounted:
 	var location_path: String = _location_path_input[0].strip_edges()
 	if location_path.is_empty():
 		return null
 
 	var location_res := load(location_path)
-	if not (location_res is ExpeditionLocationDef):
+	if location_res == null or location_res.get_script() != LocationDefRef:
 		return null
 
 	var request := StartRequestRef.new()
-	request.location = location_res as ExpeditionLocationDef
+	request.location = location_res
 	request.difficulty = _difficulty_input[0]
 	request.options = {
 		"sequence_length": maxi(_sequence_length_input[0], 1),
@@ -286,7 +290,7 @@ func _build_start_request() -> ExpeditionStartRequest:
 	return request
 
 
-func _load_squad_runtime_template() -> SquadRuntime:
+func _load_squad_runtime_template() -> Resource:
 	if squad_runtime_override != null:
 		return squad_runtime_override
 
@@ -294,9 +298,9 @@ func _load_squad_runtime_template() -> SquadRuntime:
 	if squad_path.is_empty():
 		return null
 	var squad_res := load(squad_path)
-	if not (squad_res is SquadRuntime):
+	if squad_res == null or squad_res.get_script() != SquadRuntimeRef:
 		return null
-	return squad_res as SquadRuntime
+	return squad_res
 
 
 func _reset_inputs() -> void:
@@ -307,5 +311,5 @@ func _reset_inputs() -> void:
 	_squad_runtime_path_input[0] = default_squad_path
 
 
-func _on_runtime_ended(result: ExpeditionResult) -> void:
+func _on_runtime_ended(result: RefCounted) -> void:
 	_last_result = result

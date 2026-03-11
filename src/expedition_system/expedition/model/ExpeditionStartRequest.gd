@@ -1,9 +1,10 @@
-class_name ExpeditionStartRequest extends RefCounted
+extends RefCounted
+class_name ExpeditionStartRequest
 
-var location: ExpeditionLocationDef
+var location: Resource
 var difficulty: int = 0
 var options: Dictionary = {}
-var squad: SquadRuntime
+var squad: Resource
 var seed: int = 0
 
 

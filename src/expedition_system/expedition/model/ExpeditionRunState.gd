@@ -1,4 +1,5 @@
-class_name ExpeditionRunState extends RefCounted
+extends RefCounted
+class_name ExpeditionRunState
 
 const PHASE_IDLE: StringName = &"idle"
 const PHASE_ACTIVE_EVENT: StringName = &"active_event"
@@ -13,7 +14,7 @@ var seed: int = 0
 var generated_sequence: Array[PackedScene] = []
 var step_index: int = -1
 var phase: StringName = PHASE_IDLE
-var squad_runtime: SquadRuntime
+var squad_runtime: Resource
 
 
 func reset() -> void:

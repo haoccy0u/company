@@ -14,7 +14,7 @@ Current scope:
 - use `SquadRuntime` template resource as run input (`make_run_instance` at start)
 
 Deferred:
-- richer battle rules/content tuning
+- battle event integration
 - concrete reward formulas
 
 ## Main Flow
@@ -41,10 +41,6 @@ Rules:
   - location event pool (`Array[PackedScene]`)
 - `event/ExpeditionEventBase.gd`
   - event scene base contract (`start(context)` + async component execution)
-- `event/components/BattleEventComponent.gd`
-  - battle event component (`start_component(context)` + `completed(payload)`)
-- `battle/BattleRunner.gd` + `battle/EncounterDef.gd`
-  - scene-owned battle runner and encounter input resource
 - `ui_debug/ExpeditionImGuiDebugPanel.gd`
   - scene-owned ImGui debug tool
 
@@ -57,9 +53,6 @@ Rules:
 - `scenes/expedition/events/ExpeditionEventBase.tscn`
   - `ExpeditionEventBase`
 	- `Components`
-
-- `scenes/expedition/events/components/BattleEventComponent.tscn`
-  - `BattleEventComponent`
 
 - `scenes/expedition/events/devtest/Event*.tscn`
   - devtest event scenes driven by `ExpeditionEventBase`

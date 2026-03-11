@@ -1,4 +1,5 @@
-class_name ExpeditionEventPoolDef extends Resource
+extends Resource
+class_name ExpeditionEventPoolDef
 
 @export var pool_id: StringName
 @export var event_scenes: Array[PackedScene] = []

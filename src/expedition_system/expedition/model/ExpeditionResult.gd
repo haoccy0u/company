@@ -1,4 +1,5 @@
-class_name ExpeditionResult extends RefCounted
+extends RefCounted
+class_name ExpeditionResult
 
 var run_id: StringName = &""
 var location_id: StringName = &""
@@ -7,8 +8,8 @@ var end_reason: StringName = &""
 var completed_steps: int = 0
 var seed: int = 0
 var reward_snapshot: Dictionary = {}
-var step_records: Array[ExpeditionStepRecord] = []
-var final_squad_snapshot: SquadRuntime
+var step_records: Array = []
+var final_squad_snapshot: Resource
 
 
 func to_dict() -> Dictionary:

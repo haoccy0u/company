@@ -1,4 +1,5 @@
-class_name ExpeditionStepRecord extends RefCounted
+extends RefCounted
+class_name ExpeditionStepRecord
 
 var run_id: StringName = &""
 var step_index: int = -1
