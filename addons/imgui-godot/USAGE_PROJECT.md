@@ -1,7 +1,7 @@
 # imgui-godot Usage (Project Notes)
 
 This file is a project-local usage note for `addons/imgui-godot`.
-It focuses on GDScript workflow and the current expedition debug use case.
+It focuses on the GDScript workflow used in this project.
 
 ## 1. Enable Plugin
 
@@ -60,13 +60,9 @@ func _process(_delta: float) -> void:
 
 Do not pass temporary literals like `[some_var]`; keep a persistent array field.
 
-## 4. Expedition Debug Panel Pattern
+## 4. Scene-Owned Debug Panel Pattern
 
-Current expedition debug panel is scene-owned and does not use `UIManager`.
-
-Reference implementation:
-- `res://src/expedition_system/expedition/ui_debug/ExpeditionImGuiDebugPanel.gd`
-- `res://scenes/expedition/ExpeditionSceneV2.tscn`
+Current project debug panels are scene-owned and do not use a global manager.
 
 Key points:
 - Runtime reference by exported `NodePath`.
