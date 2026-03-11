@@ -1,0 +1,8 @@
+[gd_resource type="Resource" script_class="ImGuiConfig" format=3 uid="uid://d1rxqd3ux7cyj"]
+
+[ext_resource type="Script" uid="uid://ctmf1xb56hqky" path="res://addons/imgui-godot/scripts/ImGuiConfig.gd" id="1_imgui_config_script"]
+
+[resource]
+script = ExtResource("1_imgui_config_script")
+Scale = 2.0
+Fonts = []
