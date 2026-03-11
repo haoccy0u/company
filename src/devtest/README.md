@@ -1,19 +1,18 @@
-﻿# DevTest Scripts
+# DevTest Scripts
 
-`src/devtest` 是开发测试工作台的脚本层（非正式玩法逻辑）。
+`src/devtest` contains scripts for the development test hub.
 
-## 文件职责
+## File Responsibilities
 
 - `TestPanelBase.gd`
-  - 测试面板基类
-  - 提供日志接口与共享上下文访问（`ctx_get/ctx_set/...`）
+  - Base class for test panels.
+  - Shared context and logging helpers.
 
 - `TestRegistry.gd`
-  - 注册可在 `TestHub` 中显示的测试面板
-  - 作为测试项入口清单
+  - Registry of test panels shown in `TestHub`.
 
-## 边界约定
+## Boundaries
 
-- 这里只放测试基础设施脚本
-- 业务逻辑仍放在对应模块（如 `expedition_system`）
-- 面板只做调用/展示，不长期承载核心规则实现
+- Keep only test infrastructure scripts here.
+- Business logic should stay in its owning module.
+- Panels are for invoking and displaying behavior, not for long-term core rules.
