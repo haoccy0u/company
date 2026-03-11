@@ -6,7 +6,7 @@ var location_id: StringName = &""
 var difficulty: int = 0
 var end_reason: StringName = &""
 var completed_steps: int = 0
-var seed: int = 0
+var run_seed: int = 0
 var reward_snapshot: Dictionary = {}
 var step_records: Array = []
 var final_squad_snapshot: Resource
@@ -39,7 +39,7 @@ func to_dict() -> Dictionary:
 		"difficulty": difficulty,
 		"end_reason": end_reason,
 		"completed_steps": completed_steps,
-		"seed": seed,
+		"seed": run_seed,
 		"reward_snapshot": reward_snapshot.duplicate(true),
 		"step_records": record_rows,
 		"final_squad_members": squad_rows,

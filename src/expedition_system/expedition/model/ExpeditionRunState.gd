@@ -10,7 +10,7 @@ var run_id: StringName = &""
 var location_id: StringName = &""
 var difficulty: int = 0
 var options: Dictionary = {}
-var seed: int = 0
+var run_seed: int = 0
 var generated_sequence: Array[PackedScene] = []
 var step_index: int = -1
 var phase: StringName = PHASE_IDLE
@@ -22,7 +22,7 @@ func reset() -> void:
 	location_id = &""
 	difficulty = 0
 	options = {}
-	seed = 0
+	run_seed = 0
 	generated_sequence.clear()
 	step_index = -1
 	phase = PHASE_IDLE
@@ -46,7 +46,7 @@ func to_dict() -> Dictionary:
 		"location_id": location_id,
 		"difficulty": difficulty,
 		"options": options.duplicate(true),
-		"seed": seed,
+		"seed": run_seed,
 		"sequence_scene_paths": sequence_scene_paths,
 		"step_index": step_index,
 		"phase": phase,

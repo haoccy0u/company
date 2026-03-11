@@ -50,19 +50,19 @@ func start_new_run(request: RefCounted) -> bool:
 		push_error("ExpeditionRuntime.start_new_run failed: squad runtime build failed")
 		return false
 
-	var seed: int = request.seed if request.seed != 0 else _make_seed()
-	var sequence: Array[PackedScene] = _build_sequence(request.location, request.difficulty, request.options, seed)
+	var run_seed: int = request.run_seed if request.run_seed != 0 else _make_seed()
+	var sequence: Array[PackedScene] = _build_sequence(request.location, request.difficulty, request.options, run_seed)
 	if sequence.is_empty():
 		push_error("ExpeditionRuntime.start_new_run failed: generated sequence is empty")
 		return false
 
 	_reset_active_state()
 	_location = request.location
-	_state.run_id = _build_run_id(seed)
+	_state.run_id = _build_run_id(run_seed)
 	_state.location_id = request.location.location_id
 	_state.difficulty = request.difficulty
 	_state.options = request.options.duplicate(true)
-	_state.seed = seed
+	_state.run_seed = run_seed
 	_state.generated_sequence = sequence
 	_state.step_index = -1
 	_state.phase = RunStateRef.PHASE_IDLE
@@ -156,7 +156,7 @@ func _build_sequence(
 	location: Resource,
 	difficulty: int,
 	options: Dictionary,
-	seed: int
+	run_seed: int
 ) -> Array[PackedScene]:
 	var source_scenes: Array[PackedScene] = _collect_source_scenes(location, difficulty)
 	if source_scenes.is_empty():
@@ -168,7 +168,7 @@ func _build_sequence(
 	var allow_repeat: bool = location.event_pool.allow_repeat
 
 	var rng := RandomNumberGenerator.new()
-	rng.seed = seed
+	rng.seed = run_seed
 
 	var out: Array[PackedScene] = []
 	var working: Array[PackedScene] = source_scenes.duplicate()
@@ -204,7 +204,7 @@ func _end_run(reason: StringName) -> RefCounted:
 	result.difficulty = _state.difficulty
 	result.end_reason = reason
 	result.completed_steps = _step_records.size()
-	result.seed = _state.seed
+	result.run_seed = _state.run_seed
 	result.reward_snapshot = _build_reward_snapshot(reason)
 	result.step_records = _step_records.duplicate()
 	result.final_squad_snapshot = _state.squad_runtime.duplicate(true) if _state.squad_runtime != null else null
@@ -226,9 +226,9 @@ func _build_reward_snapshot(reason: StringName) -> Dictionary:
 	}
 
 
-func _build_run_id(seed: int) -> StringName:
+func _build_run_id(run_seed: int) -> StringName:
 	var unix_sec: int = int(Time.get_unix_time_from_system())
-	var nonce: int = abs(seed) % 1000000
+	var nonce: int = abs(run_seed) % 1000000
 	return StringName("run_%d_%06d" % [unix_sec, nonce])
 
 
@@ -278,7 +278,7 @@ func _build_event_context() -> Dictionary:
 		"step_index": _state.step_index,
 		"location_id": _state.location_id,
 		"difficulty": _state.difficulty,
-		"seed": _state.seed,
+		"seed": _state.run_seed,
 		"options": _state.options,
 		"event_id": _current_event_id,
 		"event_type": _current_event_type,

@@ -5,7 +5,7 @@ var location: Resource
 var difficulty: int = 0
 var options: Dictionary = {}
 var squad: Resource
-var seed: int = 0
+var run_seed: int = 0
 
 
 func is_valid() -> bool:
@@ -26,5 +26,5 @@ func to_dict() -> Dictionary:
 		"difficulty": difficulty,
 		"options": options.duplicate(true),
 		"squad_id": squad.source_squad_id if squad != null else &"",
-		"seed": seed,
+		"seed": run_seed,
 	}

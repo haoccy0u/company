@@ -168,7 +168,7 @@ func _draw_runtime_state() -> void:
 	_imgui.Text("run_id: %s" % String(state.run_id))
 	_imgui.Text("phase: %s" % String(state.phase))
 	_imgui.Text("step_index: %d" % state.step_index)
-	_imgui.Text("seed: %d" % state.seed)
+	_imgui.Text("seed: %d" % state.run_seed)
 	_imgui.Text("sequence_len: %d" % state.generated_sequence.size())
 	_imgui.Text("location_id: %s" % String(state.location_id))
 	_imgui.Text("difficulty: %d" % state.difficulty)
@@ -224,7 +224,7 @@ func _draw_result_snapshot() -> void:
 	_imgui.Text("run_id: %s" % String(result.run_id))
 	_imgui.Text("end_reason: %s" % String(result.end_reason))
 	_imgui.Text("completed_steps: %d" % result.completed_steps)
-	_imgui.Text("seed: %d" % result.seed)
+	_imgui.Text("seed: %d" % result.run_seed)
 
 
 func _handle_start_new_run() -> void:
@@ -283,7 +283,7 @@ func _build_start_request() -> RefCounted:
 	}
 
 	var seed_value: int = _seed_input[0]
-	request.seed = 0 if seed_value < 0 else seed_value
+	request.run_seed = 0 if seed_value < 0 else seed_value
 	request.squad = _load_squad_runtime_template()
 	if not request.is_valid():
 		return null
