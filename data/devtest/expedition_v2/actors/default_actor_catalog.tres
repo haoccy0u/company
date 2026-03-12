@@ -1,7 +1,6 @@
 [gd_resource type="Resource" script_class="ActorCatalog" format=3 uid="uid://dkmmbjots5jhg"]
 
 [ext_resource type="Script" uid="uid://b4iy5eye1xpbv" path="res://src/actor_system/ActorCatalog.gd" id="1_catalog_script"]
-[ext_resource type="Resource" uid="uid://ctqtqc2hhcdf8" path="res://data/devtest/expedition_v2/actors/1.tres" id="2_1e5jc"]
 [ext_resource type="Script" uid="uid://dw1buev4tiv2l" path="res://src/actor_system/ActorDefinition.gd" id="2_actor_def_script"]
 
 [sub_resource type="Resource" id="Resource_observer"]
@@ -34,4 +33,4 @@ skill_ids = Array[StringName]([&"guard"])
 
 [resource]
 script = ExtResource("1_catalog_script")
-actors = Array[ExtResource("2_actor_def_script")]([SubResource("Resource_observer"), SubResource("Resource_robot"), ExtResource("2_1e5jc")])
+actors = Array[ExtResource("2_actor_def_script")]([SubResource("Resource_observer"), SubResource("Resource_robot")])

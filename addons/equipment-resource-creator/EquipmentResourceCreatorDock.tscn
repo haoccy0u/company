@@ -1,8 +1,8 @@
-[gd_scene format=3]
+[gd_scene format=3 uid="uid://c6g6y83i7fpiq"]
 
-[ext_resource type="Script" path="res://addons/equipment-resource-creator/EquipmentResourceCreatorDock.gd" id="1_dock_script"]
+[ext_resource type="Script" uid="uid://dsarkpmmih63n" path="res://addons/equipment-resource-creator/EquipmentResourceCreatorDock.gd" id="1_dock_script"]
 
-[node name="ResourceCreatorDock" type="VBoxContainer"]
+[node name="ResourceCreatorDock" type="VBoxContainer" unique_id=848102324]
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
@@ -12,326 +12,372 @@ size_flags_horizontal = 3
 size_flags_vertical = 3
 script = ExtResource("1_dock_script")
 
-[node name="Tabs" type="TabContainer" parent="."]
+[node name="Tabs" type="TabContainer" parent="." unique_id=1323454773]
 unique_name_in_owner = true
 layout_mode = 2
 size_flags_horizontal = 3
 size_flags_vertical = 3
+current_tab = 0
 
-[node name="EquipmentItem" type="VBoxContainer" parent="Tabs"]
+[node name="EquipmentItem" type="VBoxContainer" parent="Tabs" unique_id=1531190181]
 layout_mode = 2
 size_flags_horizontal = 3
 size_flags_vertical = 3
+metadata/_tab_index = 0
 
-[node name="ItemForm" type="GridContainer" parent="Tabs/EquipmentItem"]
+[node name="ItemForm" type="GridContainer" parent="Tabs/EquipmentItem" unique_id=679694780]
 layout_mode = 2
 size_flags_horizontal = 3
 columns = 2
 
-[node name="ItemSaveDirLabel" type="Label" parent="Tabs/EquipmentItem/ItemForm"]
+[node name="ItemSaveDirLabel" type="Label" parent="Tabs/EquipmentItem/ItemForm" unique_id=1841679621]
 layout_mode = 2
 text = "save_dir"
 
-[node name="ItemSaveDirRow" type="HBoxContainer" parent="Tabs/EquipmentItem/ItemForm"]
+[node name="ItemSaveDirRow" type="HBoxContainer" parent="Tabs/EquipmentItem/ItemForm" unique_id=953085893]
 layout_mode = 2
 size_flags_horizontal = 3
 
-[node name="ItemSaveDirInput" type="LineEdit" parent="Tabs/EquipmentItem/ItemForm/ItemSaveDirRow"]
+[node name="ItemSaveDirInput" type="LineEdit" parent="Tabs/EquipmentItem/ItemForm/ItemSaveDirRow" unique_id=1123225835]
 unique_name_in_owner = true
 layout_mode = 2
 size_flags_horizontal = 3
+text = "res://data/devtest/expedition_v2/items"
 
-[node name="ItemSaveDirBrowseButton" type="Button" parent="Tabs/EquipmentItem/ItemForm/ItemSaveDirRow"]
+[node name="ItemSaveDirBrowseButton" type="Button" parent="Tabs/EquipmentItem/ItemForm/ItemSaveDirRow" unique_id=64050927]
 unique_name_in_owner = true
 layout_mode = 2
 text = "Browse"
 
-[node name="ItemFileNameLabel" type="Label" parent="Tabs/EquipmentItem/ItemForm"]
+[node name="ItemFileNameLabel" type="Label" parent="Tabs/EquipmentItem/ItemForm" unique_id=366417898]
 layout_mode = 2
 text = "file_name"
 
-[node name="ItemFileNameInput" type="LineEdit" parent="Tabs/EquipmentItem/ItemForm"]
+[node name="ItemFileNameInput" type="LineEdit" parent="Tabs/EquipmentItem/ItemForm" unique_id=555221480]
 unique_name_in_owner = true
 layout_mode = 2
 size_flags_horizontal = 3
 
-[node name="ItemIdLabel" type="Label" parent="Tabs/EquipmentItem/ItemForm"]
+[node name="ItemIdLabel" type="Label" parent="Tabs/EquipmentItem/ItemForm" unique_id=1822569124]
 layout_mode = 2
 text = "item_id"
 
-[node name="ItemIdInput" type="LineEdit" parent="Tabs/EquipmentItem/ItemForm"]
+[node name="ItemIdInput" type="LineEdit" parent="Tabs/EquipmentItem/ItemForm" unique_id=1600249491]
 unique_name_in_owner = true
 layout_mode = 2
 size_flags_horizontal = 3
 
-[node name="ItemNameLabel" type="Label" parent="Tabs/EquipmentItem/ItemForm"]
+[node name="ItemNameLabel" type="Label" parent="Tabs/EquipmentItem/ItemForm" unique_id=990069165]
 layout_mode = 2
 text = "item_name"
 
-[node name="ItemNameInput" type="LineEdit" parent="Tabs/EquipmentItem/ItemForm"]
+[node name="ItemNameInput" type="LineEdit" parent="Tabs/EquipmentItem/ItemForm" unique_id=1717700499]
 unique_name_in_owner = true
 layout_mode = 2
 size_flags_horizontal = 3
 
-[node name="ItemDescriptionLabel" type="Label" parent="Tabs/EquipmentItem/ItemForm"]
+[node name="ItemDescriptionLabel" type="Label" parent="Tabs/EquipmentItem/ItemForm" unique_id=1277192058]
 layout_mode = 2
 text = "description"
 
-[node name="ItemDescriptionInput" type="LineEdit" parent="Tabs/EquipmentItem/ItemForm"]
+[node name="ItemDescriptionInput" type="LineEdit" parent="Tabs/EquipmentItem/ItemForm" unique_id=1211890546]
 unique_name_in_owner = true
 layout_mode = 2
 size_flags_horizontal = 3
 
-[node name="ItemTexturePathLabel" type="Label" parent="Tabs/EquipmentItem/ItemForm"]
+[node name="ItemTexturePathLabel" type="Label" parent="Tabs/EquipmentItem/ItemForm" unique_id=2041956526]
 layout_mode = 2
 text = "texture_path(optional)"
 
-[node name="ItemTexturePathInput" type="LineEdit" parent="Tabs/EquipmentItem/ItemForm"]
+[node name="ItemTexturePathInput" type="LineEdit" parent="Tabs/EquipmentItem/ItemForm" unique_id=1680178259]
 unique_name_in_owner = true
 layout_mode = 2
 size_flags_horizontal = 3
 
-[node name="ItemExtraTagsLabel" type="Label" parent="Tabs/EquipmentItem/ItemForm"]
+[node name="ItemExtraTagsLabel" type="Label" parent="Tabs/EquipmentItem/ItemForm" unique_id=750995016]
 layout_mode = 2
 text = "extra_tags(csv)"
 
-[node name="ItemExtraTagsInput" type="LineEdit" parent="Tabs/EquipmentItem/ItemForm"]
+[node name="ItemExtraTagsInput" type="LineEdit" parent="Tabs/EquipmentItem/ItemForm" unique_id=859298509]
 unique_name_in_owner = true
 layout_mode = 2
 size_flags_horizontal = 3
 
-[node name="ItemMaxStackLabel" type="Label" parent="Tabs/EquipmentItem/ItemForm"]
+[node name="ItemMaxStackLabel" type="Label" parent="Tabs/EquipmentItem/ItemForm" unique_id=1181555076]
 layout_mode = 2
 text = "max_stack"
 
-[node name="ItemMaxStackInput" type="SpinBox" parent="Tabs/EquipmentItem/ItemForm"]
+[node name="ItemMaxStackInput" type="SpinBox" parent="Tabs/EquipmentItem/ItemForm" unique_id=1397370567]
 unique_name_in_owner = true
 layout_mode = 2
 size_flags_horizontal = 3
 min_value = 1.0
 max_value = 9999.0
-step = 1.0
 value = 1.0
 
-[node name="ItemSep" type="HSeparator" parent="Tabs/EquipmentItem"]
+[node name="ItemSep" type="HSeparator" parent="Tabs/EquipmentItem" unique_id=421022739]
 layout_mode = 2
 
-[node name="EffectTitle" type="Label" parent="Tabs/EquipmentItem"]
+[node name="EffectTitle" type="Label" parent="Tabs/EquipmentItem" unique_id=1903683452]
 layout_mode = 2
 text = "equip_effect editor"
 
-[node name="EffectForm" type="HBoxContainer" parent="Tabs/EquipmentItem"]
+[node name="EffectForm" type="HBoxContainer" parent="Tabs/EquipmentItem" unique_id=2112760685]
 layout_mode = 2
 size_flags_horizontal = 3
 
-[node name="EffectOpInput" type="OptionButton" parent="Tabs/EquipmentItem/EffectForm"]
+[node name="EffectOpInput" type="OptionButton" parent="Tabs/EquipmentItem/EffectForm" unique_id=1353335041]
 unique_name_in_owner = true
 layout_mode = 2
+selected = 0
+item_count = 4
+popup/item_0/text = "add"
+popup/item_0/id = 0
+popup/item_1/text = "sub"
+popup/item_1/id = 1
+popup/item_2/text = "mult"
+popup/item_2/id = 2
+popup/item_3/text = "div"
+popup/item_3/id = 3
 
-[node name="EffectAttrInput" type="LineEdit" parent="Tabs/EquipmentItem/EffectForm"]
+[node name="EffectAttrInput" type="LineEdit" parent="Tabs/EquipmentItem/EffectForm" unique_id=480217386]
 unique_name_in_owner = true
 layout_mode = 2
 size_flags_horizontal = 3
 placeholder_text = "attr (e.g. strength)"
 
-[node name="EffectValueInput" type="LineEdit" parent="Tabs/EquipmentItem/EffectForm"]
+[node name="EffectValueInput" type="LineEdit" parent="Tabs/EquipmentItem/EffectForm" unique_id=1079820694]
 unique_name_in_owner = true
-layout_mode = 2
 custom_minimum_size = Vector2(120, 0)
+layout_mode = 2
 placeholder_text = "value (float)"
 
-[node name="AddEffectButton" type="Button" parent="Tabs/EquipmentItem/EffectForm"]
+[node name="AddEffectButton" type="Button" parent="Tabs/EquipmentItem/EffectForm" unique_id=1841281643]
 unique_name_in_owner = true
 layout_mode = 2
 text = "Add Effect"
 
-[node name="EffectList" type="ItemList" parent="Tabs/EquipmentItem"]
+[node name="EffectList" type="ItemList" parent="Tabs/EquipmentItem" unique_id=1365267018]
 unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 140)
 layout_mode = 2
 size_flags_horizontal = 3
 size_flags_vertical = 3
-custom_minimum_size = Vector2(0, 140)
 
-[node name="EffectActions" type="HBoxContainer" parent="Tabs/EquipmentItem"]
+[node name="EffectActions" type="HBoxContainer" parent="Tabs/EquipmentItem" unique_id=655994097]
 layout_mode = 2
 
-[node name="RemoveSelectedEffectButton" type="Button" parent="Tabs/EquipmentItem/EffectActions"]
+[node name="RemoveSelectedEffectButton" type="Button" parent="Tabs/EquipmentItem/EffectActions" unique_id=1544268634]
 unique_name_in_owner = true
 layout_mode = 2
 text = "Remove Selected"
 
-[node name="ClearEffectsButton" type="Button" parent="Tabs/EquipmentItem/EffectActions"]
+[node name="ClearEffectsButton" type="Button" parent="Tabs/EquipmentItem/EffectActions" unique_id=1739803497]
 unique_name_in_owner = true
 layout_mode = 2
 text = "Clear Effects"
 
-[node name="ItemActions" type="HBoxContainer" parent="Tabs/EquipmentItem"]
+[node name="ItemActions" type="HBoxContainer" parent="Tabs/EquipmentItem" unique_id=909843198]
 layout_mode = 2
 
-[node name="CreateItemButton" type="Button" parent="Tabs/EquipmentItem/ItemActions"]
+[node name="CreateItemButton" type="Button" parent="Tabs/EquipmentItem/ItemActions" unique_id=2004823063]
 unique_name_in_owner = true
 layout_mode = 2
 text = "Create Item Resource"
 
-[node name="ResetItemButton" type="Button" parent="Tabs/EquipmentItem/ItemActions"]
+[node name="ResetItemButton" type="Button" parent="Tabs/EquipmentItem/ItemActions" unique_id=444224624]
 unique_name_in_owner = true
 layout_mode = 2
 text = "Reset"
 
-[node name="ItemBrowserSep" type="HSeparator" parent="Tabs/EquipmentItem"]
+[node name="ItemBrowserSep" type="HSeparator" parent="Tabs/EquipmentItem" unique_id=314576288]
 layout_mode = 2
 
-[node name="ItemBrowserTitle" type="Label" parent="Tabs/EquipmentItem"]
+[node name="ItemBrowserTitle" type="Label" parent="Tabs/EquipmentItem" unique_id=312352147]
 layout_mode = 2
 text = "resource browser"
 
-[node name="ItemBrowserForm" type="GridContainer" parent="Tabs/EquipmentItem"]
+[node name="ItemBrowserForm" type="GridContainer" parent="Tabs/EquipmentItem" unique_id=1667801712]
 layout_mode = 2
 size_flags_horizontal = 3
 columns = 2
 
-[node name="ItemBrowserDirLabel" type="Label" parent="Tabs/EquipmentItem/ItemBrowserForm"]
+[node name="ItemBrowserDirLabel" type="Label" parent="Tabs/EquipmentItem/ItemBrowserForm" unique_id=1344537534]
 layout_mode = 2
 text = "browse_path"
 
-[node name="ItemBrowserDirRow" type="HBoxContainer" parent="Tabs/EquipmentItem/ItemBrowserForm"]
+[node name="ItemBrowserDirRow" type="HBoxContainer" parent="Tabs/EquipmentItem/ItemBrowserForm" unique_id=391409618]
 layout_mode = 2
 size_flags_horizontal = 3
 
-[node name="ItemBrowserDirInput" type="LineEdit" parent="Tabs/EquipmentItem/ItemBrowserForm/ItemBrowserDirRow"]
+[node name="ItemBrowserDirInput" type="LineEdit" parent="Tabs/EquipmentItem/ItemBrowserForm/ItemBrowserDirRow" unique_id=1886585219]
 unique_name_in_owner = true
 layout_mode = 2
 size_flags_horizontal = 3
+text = "res://data/devtest/expedition_v2/items"
 
-[node name="ItemBrowserDirBrowseButton" type="Button" parent="Tabs/EquipmentItem/ItemBrowserForm/ItemBrowserDirRow"]
+[node name="ItemBrowserDirBrowseButton" type="Button" parent="Tabs/EquipmentItem/ItemBrowserForm/ItemBrowserDirRow" unique_id=946686530]
 unique_name_in_owner = true
 layout_mode = 2
 text = "Browse"
 
-[node name="ItemBrowserActions" type="HBoxContainer" parent="Tabs/EquipmentItem"]
+[node name="ItemBrowserActions" type="HBoxContainer" parent="Tabs/EquipmentItem" unique_id=437696486]
 layout_mode = 2
 
-[node name="RefreshItemBrowserButton" type="Button" parent="Tabs/EquipmentItem/ItemBrowserActions"]
+[node name="RefreshItemBrowserButton" type="Button" parent="Tabs/EquipmentItem/ItemBrowserActions" unique_id=664241854]
 unique_name_in_owner = true
 layout_mode = 2
 text = "Refresh"
 
-[node name="ItemBrowserSplit" type="HSplitContainer" parent="Tabs/EquipmentItem"]
+[node name="ItemBrowserSplit" type="HSplitContainer" parent="Tabs/EquipmentItem" unique_id=840130318]
 layout_mode = 2
 size_flags_horizontal = 3
 size_flags_vertical = 3
+split_offsets = PackedInt32Array(280)
 split_offset = 280
 
-[node name="ItemResourceList" type="ItemList" parent="Tabs/EquipmentItem/ItemBrowserSplit"]
+[node name="ItemResourceList" type="ItemList" parent="Tabs/EquipmentItem/ItemBrowserSplit" unique_id=351179165]
 unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 140)
 layout_mode = 2
 size_flags_horizontal = 3
 size_flags_vertical = 3
-custom_minimum_size = Vector2(0, 140)
+item_count = 2
+item_0/text = "iron_sword.tres (iron_sword)"
+item_1/text = "wood_shield.tres (wood_shield)"
 
-[node name="ItemResourceDetail" type="TextEdit" parent="Tabs/EquipmentItem/ItemBrowserSplit"]
+[node name="ItemResourceDetail" type="TextEdit" parent="Tabs/EquipmentItem/ItemBrowserSplit" unique_id=956485808]
 unique_name_in_owner = true
 layout_mode = 2
 size_flags_horizontal = 3
 size_flags_vertical = 3
 editable = false
 
-[node name="ActorDefinition" type="VBoxContainer" parent="Tabs"]
+[node name="ActorDefinition" type="VBoxContainer" parent="Tabs" unique_id=854141666]
+visible = false
 layout_mode = 2
 size_flags_horizontal = 3
 size_flags_vertical = 3
+metadata/_tab_index = 1
 
-[node name="ActorForm" type="GridContainer" parent="Tabs/ActorDefinition"]
+[node name="CatalogTools" type="HBoxContainer" parent="Tabs/ActorDefinition" unique_id=799446729]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="CatalogUnbindActorIdInput" type="LineEdit" parent="Tabs/ActorDefinition/CatalogTools" unique_id=1474044942]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+placeholder_text = "unbind actor_id"
+
+[node name="UnbindActorButton" type="Button" parent="Tabs/ActorDefinition/CatalogTools" unique_id=49800802]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Unbind Actor"
+
+[node name="ValidateCatalogButton" type="Button" parent="Tabs/ActorDefinition/CatalogTools" unique_id=1694156592]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Validate Catalog"
+
+[node name="RepairCatalogButton" type="Button" parent="Tabs/ActorDefinition/CatalogTools" unique_id=386507375]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Repair Catalog"
+
+[node name="ActorForm" type="GridContainer" parent="Tabs/ActorDefinition" unique_id=745864115]
 layout_mode = 2
 size_flags_horizontal = 3
 columns = 2
 
-[node name="ActorSaveDirLabel" type="Label" parent="Tabs/ActorDefinition/ActorForm"]
+[node name="ActorSaveDirLabel" type="Label" parent="Tabs/ActorDefinition/ActorForm" unique_id=2081410830]
 layout_mode = 2
 text = "save_dir"
 
-[node name="ActorSaveDirRow" type="HBoxContainer" parent="Tabs/ActorDefinition/ActorForm"]
+[node name="ActorSaveDirRow" type="HBoxContainer" parent="Tabs/ActorDefinition/ActorForm" unique_id=1516120076]
 layout_mode = 2
 size_flags_horizontal = 3
 
-[node name="ActorSaveDirInput" type="LineEdit" parent="Tabs/ActorDefinition/ActorForm/ActorSaveDirRow"]
+[node name="ActorSaveDirInput" type="LineEdit" parent="Tabs/ActorDefinition/ActorForm/ActorSaveDirRow" unique_id=247126931]
 unique_name_in_owner = true
 layout_mode = 2
 size_flags_horizontal = 3
+text = "res://data/devtest/expedition_v2/actors"
 
-[node name="ActorSaveDirBrowseButton" type="Button" parent="Tabs/ActorDefinition/ActorForm/ActorSaveDirRow"]
+[node name="ActorSaveDirBrowseButton" type="Button" parent="Tabs/ActorDefinition/ActorForm/ActorSaveDirRow" unique_id=690646975]
 unique_name_in_owner = true
 layout_mode = 2
 text = "Browse"
 
-[node name="ActorCatalogPathLabel" type="Label" parent="Tabs/ActorDefinition/ActorForm"]
+[node name="ActorCatalogPathLabel" type="Label" parent="Tabs/ActorDefinition/ActorForm" unique_id=47375499]
 layout_mode = 2
 text = "catalog_path"
 
-[node name="ActorCatalogPathRow" type="HBoxContainer" parent="Tabs/ActorDefinition/ActorForm"]
+[node name="ActorCatalogPathRow" type="HBoxContainer" parent="Tabs/ActorDefinition/ActorForm" unique_id=2007246343]
 layout_mode = 2
 size_flags_horizontal = 3
 
-[node name="ActorCatalogPathInput" type="LineEdit" parent="Tabs/ActorDefinition/ActorForm/ActorCatalogPathRow"]
+[node name="ActorCatalogPathInput" type="LineEdit" parent="Tabs/ActorDefinition/ActorForm/ActorCatalogPathRow" unique_id=1767676125]
 unique_name_in_owner = true
 layout_mode = 2
 size_flags_horizontal = 3
+text = "res://data/devtest/expedition_v2/actors/default_actor_catalog.tres"
 
-[node name="ActorCatalogPathBrowseButton" type="Button" parent="Tabs/ActorDefinition/ActorForm/ActorCatalogPathRow"]
+[node name="ActorCatalogPathBrowseButton" type="Button" parent="Tabs/ActorDefinition/ActorForm/ActorCatalogPathRow" unique_id=721961336]
 unique_name_in_owner = true
 layout_mode = 2
 text = "Browse"
 
-[node name="ActorFileNameLabel" type="Label" parent="Tabs/ActorDefinition/ActorForm"]
+[node name="ActorFileNameLabel" type="Label" parent="Tabs/ActorDefinition/ActorForm" unique_id=337831204]
 layout_mode = 2
 text = "file_name"
 
-[node name="ActorFileNameInput" type="LineEdit" parent="Tabs/ActorDefinition/ActorForm"]
+[node name="ActorFileNameInput" type="LineEdit" parent="Tabs/ActorDefinition/ActorForm" unique_id=677483236]
 unique_name_in_owner = true
 layout_mode = 2
 size_flags_horizontal = 3
 
-[node name="ActorIdLabel" type="Label" parent="Tabs/ActorDefinition/ActorForm"]
+[node name="ActorIdLabel" type="Label" parent="Tabs/ActorDefinition/ActorForm" unique_id=1982227058]
 layout_mode = 2
 text = "actor_id"
 
-[node name="ActorIdInput" type="LineEdit" parent="Tabs/ActorDefinition/ActorForm"]
+[node name="ActorIdInput" type="LineEdit" parent="Tabs/ActorDefinition/ActorForm" unique_id=628057324]
 unique_name_in_owner = true
 layout_mode = 2
 size_flags_horizontal = 3
 
-[node name="ActorDisplayNameLabel" type="Label" parent="Tabs/ActorDefinition/ActorForm"]
+[node name="ActorDisplayNameLabel" type="Label" parent="Tabs/ActorDefinition/ActorForm" unique_id=35157671]
 layout_mode = 2
 text = "display_name"
 
-[node name="ActorDisplayNameInput" type="LineEdit" parent="Tabs/ActorDefinition/ActorForm"]
+[node name="ActorDisplayNameInput" type="LineEdit" parent="Tabs/ActorDefinition/ActorForm" unique_id=270864342]
 unique_name_in_owner = true
 layout_mode = 2
 size_flags_horizontal = 3
 
-[node name="ActorDescriptionLabel" type="Label" parent="Tabs/ActorDefinition/ActorForm"]
+[node name="ActorDescriptionLabel" type="Label" parent="Tabs/ActorDefinition/ActorForm" unique_id=2078807257]
 layout_mode = 2
 text = "description"
 
-[node name="ActorDescriptionInput" type="LineEdit" parent="Tabs/ActorDefinition/ActorForm"]
+[node name="ActorDescriptionInput" type="LineEdit" parent="Tabs/ActorDefinition/ActorForm" unique_id=1648427817]
 unique_name_in_owner = true
 layout_mode = 2
 size_flags_horizontal = 3
 
-[node name="ActorTagsLabel" type="Label" parent="Tabs/ActorDefinition/ActorForm"]
+[node name="ActorTagsLabel" type="Label" parent="Tabs/ActorDefinition/ActorForm" unique_id=1753050289]
 layout_mode = 2
 text = "tags(csv)"
 
-[node name="ActorTagsInput" type="LineEdit" parent="Tabs/ActorDefinition/ActorForm"]
+[node name="ActorTagsInput" type="LineEdit" parent="Tabs/ActorDefinition/ActorForm" unique_id=636633569]
 unique_name_in_owner = true
 layout_mode = 2
 size_flags_horizontal = 3
 
-[node name="ActorStrengthLabel" type="Label" parent="Tabs/ActorDefinition/ActorForm"]
+[node name="ActorStrengthLabel" type="Label" parent="Tabs/ActorDefinition/ActorForm" unique_id=91009729]
 layout_mode = 2
 text = "strength"
 
-[node name="ActorStrengthInput" type="SpinBox" parent="Tabs/ActorDefinition/ActorForm"]
+[node name="ActorStrengthInput" type="SpinBox" parent="Tabs/ActorDefinition/ActorForm" unique_id=1793737392]
 unique_name_in_owner = true
 layout_mode = 2
 size_flags_horizontal = 3
@@ -339,11 +385,11 @@ min_value = -9999.0
 max_value = 9999.0
 step = 0.1
 
-[node name="ActorConstitutionLabel" type="Label" parent="Tabs/ActorDefinition/ActorForm"]
+[node name="ActorConstitutionLabel" type="Label" parent="Tabs/ActorDefinition/ActorForm" unique_id=497233439]
 layout_mode = 2
 text = "constitution"
 
-[node name="ActorConstitutionInput" type="SpinBox" parent="Tabs/ActorDefinition/ActorForm"]
+[node name="ActorConstitutionInput" type="SpinBox" parent="Tabs/ActorDefinition/ActorForm" unique_id=1981277092]
 unique_name_in_owner = true
 layout_mode = 2
 size_flags_horizontal = 3
@@ -351,11 +397,11 @@ min_value = -9999.0
 max_value = 9999.0
 step = 0.1
 
-[node name="ActorDexterityLabel" type="Label" parent="Tabs/ActorDefinition/ActorForm"]
+[node name="ActorDexterityLabel" type="Label" parent="Tabs/ActorDefinition/ActorForm" unique_id=21964753]
 layout_mode = 2
 text = "dexterity"
 
-[node name="ActorDexterityInput" type="SpinBox" parent="Tabs/ActorDefinition/ActorForm"]
+[node name="ActorDexterityInput" type="SpinBox" parent="Tabs/ActorDefinition/ActorForm" unique_id=1570961680]
 unique_name_in_owner = true
 layout_mode = 2
 size_flags_horizontal = 3
@@ -363,11 +409,11 @@ min_value = -9999.0
 max_value = 9999.0
 step = 0.1
 
-[node name="ActorPerceptionLabel" type="Label" parent="Tabs/ActorDefinition/ActorForm"]
+[node name="ActorPerceptionLabel" type="Label" parent="Tabs/ActorDefinition/ActorForm" unique_id=402805109]
 layout_mode = 2
 text = "perception"
 
-[node name="ActorPerceptionInput" type="SpinBox" parent="Tabs/ActorDefinition/ActorForm"]
+[node name="ActorPerceptionInput" type="SpinBox" parent="Tabs/ActorDefinition/ActorForm" unique_id=1220091442]
 unique_name_in_owner = true
 layout_mode = 2
 size_flags_horizontal = 3
@@ -375,11 +421,11 @@ min_value = -9999.0
 max_value = 9999.0
 step = 0.1
 
-[node name="ActorWillLabel" type="Label" parent="Tabs/ActorDefinition/ActorForm"]
+[node name="ActorWillLabel" type="Label" parent="Tabs/ActorDefinition/ActorForm" unique_id=2113978882]
 layout_mode = 2
 text = "will"
 
-[node name="ActorWillInput" type="SpinBox" parent="Tabs/ActorDefinition/ActorForm"]
+[node name="ActorWillInput" type="SpinBox" parent="Tabs/ActorDefinition/ActorForm" unique_id=1742340592]
 unique_name_in_owner = true
 layout_mode = 2
 size_flags_horizontal = 3
@@ -387,11 +433,11 @@ min_value = -9999.0
 max_value = 9999.0
 step = 0.1
 
-[node name="ActorIntelligenceLabel" type="Label" parent="Tabs/ActorDefinition/ActorForm"]
+[node name="ActorIntelligenceLabel" type="Label" parent="Tabs/ActorDefinition/ActorForm" unique_id=948098410]
 layout_mode = 2
 text = "intelligence"
 
-[node name="ActorIntelligenceInput" type="SpinBox" parent="Tabs/ActorDefinition/ActorForm"]
+[node name="ActorIntelligenceInput" type="SpinBox" parent="Tabs/ActorDefinition/ActorForm" unique_id=293347207]
 unique_name_in_owner = true
 layout_mode = 2
 size_flags_horizontal = 3
@@ -399,11 +445,11 @@ min_value = -9999.0
 max_value = 9999.0
 step = 0.1
 
-[node name="ActorLuckLabel" type="Label" parent="Tabs/ActorDefinition/ActorForm"]
+[node name="ActorLuckLabel" type="Label" parent="Tabs/ActorDefinition/ActorForm" unique_id=231978806]
 layout_mode = 2
 text = "luck"
 
-[node name="ActorLuckInput" type="SpinBox" parent="Tabs/ActorDefinition/ActorForm"]
+[node name="ActorLuckInput" type="SpinBox" parent="Tabs/ActorDefinition/ActorForm" unique_id=2014397529]
 unique_name_in_owner = true
 layout_mode = 2
 size_flags_horizontal = 3
@@ -411,131 +457,134 @@ min_value = -9999.0
 max_value = 9999.0
 step = 0.1
 
-[node name="ActorSkillIdsLabel" type="Label" parent="Tabs/ActorDefinition/ActorForm"]
+[node name="ActorSkillIdsLabel" type="Label" parent="Tabs/ActorDefinition/ActorForm" unique_id=167459354]
 layout_mode = 2
 text = "skill_ids(csv)"
 
-[node name="ActorSkillIdsInput" type="LineEdit" parent="Tabs/ActorDefinition/ActorForm"]
+[node name="ActorSkillIdsInput" type="LineEdit" parent="Tabs/ActorDefinition/ActorForm" unique_id=610927227]
 unique_name_in_owner = true
 layout_mode = 2
 size_flags_horizontal = 3
 
-[node name="ActorPassiveIdsLabel" type="Label" parent="Tabs/ActorDefinition/ActorForm"]
+[node name="ActorPassiveIdsLabel" type="Label" parent="Tabs/ActorDefinition/ActorForm" unique_id=1049887341]
 layout_mode = 2
 text = "passive_ids(csv)"
 
-[node name="ActorPassiveIdsInput" type="LineEdit" parent="Tabs/ActorDefinition/ActorForm"]
+[node name="ActorPassiveIdsInput" type="LineEdit" parent="Tabs/ActorDefinition/ActorForm" unique_id=1945046739]
 unique_name_in_owner = true
 layout_mode = 2
 size_flags_horizontal = 3
 
-[node name="ActorAiProfileLabel" type="Label" parent="Tabs/ActorDefinition/ActorForm"]
+[node name="ActorAiProfileLabel" type="Label" parent="Tabs/ActorDefinition/ActorForm" unique_id=2110280457]
 layout_mode = 2
 text = "ai_profile_id"
 
-[node name="ActorAiProfileInput" type="LineEdit" parent="Tabs/ActorDefinition/ActorForm"]
+[node name="ActorAiProfileInput" type="LineEdit" parent="Tabs/ActorDefinition/ActorForm" unique_id=1759285006]
 unique_name_in_owner = true
 layout_mode = 2
 size_flags_horizontal = 3
 
-[node name="ActorCaptureProfileLabel" type="Label" parent="Tabs/ActorDefinition/ActorForm"]
+[node name="ActorCaptureProfileLabel" type="Label" parent="Tabs/ActorDefinition/ActorForm" unique_id=1843222169]
 layout_mode = 2
 text = "capture_profile_id"
 
-[node name="ActorCaptureProfileInput" type="LineEdit" parent="Tabs/ActorDefinition/ActorForm"]
+[node name="ActorCaptureProfileInput" type="LineEdit" parent="Tabs/ActorDefinition/ActorForm" unique_id=75685917]
 unique_name_in_owner = true
 layout_mode = 2
 size_flags_horizontal = 3
 
-[node name="ActorActions" type="HBoxContainer" parent="Tabs/ActorDefinition"]
+[node name="ActorActions" type="HBoxContainer" parent="Tabs/ActorDefinition" unique_id=1270294450]
 layout_mode = 2
 
-[node name="CreateActorButton" type="Button" parent="Tabs/ActorDefinition/ActorActions"]
+[node name="CreateActorButton" type="Button" parent="Tabs/ActorDefinition/ActorActions" unique_id=1457079637]
 unique_name_in_owner = true
 layout_mode = 2
 text = "Create ActorDefinition"
 
-[node name="ResetActorButton" type="Button" parent="Tabs/ActorDefinition/ActorActions"]
+[node name="ResetActorButton" type="Button" parent="Tabs/ActorDefinition/ActorActions" unique_id=1377220659]
 unique_name_in_owner = true
 layout_mode = 2
 text = "Reset"
 
-[node name="ActorBrowserSep" type="HSeparator" parent="Tabs/ActorDefinition"]
+[node name="ActorBrowserSep" type="HSeparator" parent="Tabs/ActorDefinition" unique_id=1040209927]
 layout_mode = 2
 
-[node name="ActorBrowserTitle" type="Label" parent="Tabs/ActorDefinition"]
+[node name="ActorBrowserTitle" type="Label" parent="Tabs/ActorDefinition" unique_id=888947528]
 layout_mode = 2
 text = "resource browser"
 
-[node name="ActorBrowserForm" type="GridContainer" parent="Tabs/ActorDefinition"]
+[node name="ActorBrowserForm" type="GridContainer" parent="Tabs/ActorDefinition" unique_id=679681554]
 layout_mode = 2
 size_flags_horizontal = 3
 columns = 2
 
-[node name="ActorBrowserDirLabel" type="Label" parent="Tabs/ActorDefinition/ActorBrowserForm"]
+[node name="ActorBrowserDirLabel" type="Label" parent="Tabs/ActorDefinition/ActorBrowserForm" unique_id=891612478]
 layout_mode = 2
 text = "browse_path"
 
-[node name="ActorBrowserDirRow" type="HBoxContainer" parent="Tabs/ActorDefinition/ActorBrowserForm"]
+[node name="ActorBrowserDirRow" type="HBoxContainer" parent="Tabs/ActorDefinition/ActorBrowserForm" unique_id=1030932886]
 layout_mode = 2
 size_flags_horizontal = 3
 
-[node name="ActorBrowserDirInput" type="LineEdit" parent="Tabs/ActorDefinition/ActorBrowserForm/ActorBrowserDirRow"]
+[node name="ActorBrowserDirInput" type="LineEdit" parent="Tabs/ActorDefinition/ActorBrowserForm/ActorBrowserDirRow" unique_id=1260583546]
 unique_name_in_owner = true
 layout_mode = 2
 size_flags_horizontal = 3
+text = "res://data/devtest/expedition_v2/actors"
 
-[node name="ActorBrowserDirBrowseButton" type="Button" parent="Tabs/ActorDefinition/ActorBrowserForm/ActorBrowserDirRow"]
+[node name="ActorBrowserDirBrowseButton" type="Button" parent="Tabs/ActorDefinition/ActorBrowserForm/ActorBrowserDirRow" unique_id=1748311161]
 unique_name_in_owner = true
 layout_mode = 2
 text = "Browse"
 
-[node name="ActorBrowserActions" type="HBoxContainer" parent="Tabs/ActorDefinition"]
+[node name="ActorBrowserActions" type="HBoxContainer" parent="Tabs/ActorDefinition" unique_id=549051947]
 layout_mode = 2
 
-[node name="RefreshActorBrowserButton" type="Button" parent="Tabs/ActorDefinition/ActorBrowserActions"]
+[node name="RefreshActorBrowserButton" type="Button" parent="Tabs/ActorDefinition/ActorBrowserActions" unique_id=1973788066]
 unique_name_in_owner = true
 layout_mode = 2
 text = "Refresh"
 
-[node name="ActorBrowserSplit" type="HSplitContainer" parent="Tabs/ActorDefinition"]
+[node name="ActorBrowserSplit" type="HSplitContainer" parent="Tabs/ActorDefinition" unique_id=458750842]
 layout_mode = 2
 size_flags_horizontal = 3
 size_flags_vertical = 3
+split_offsets = PackedInt32Array(280)
 split_offset = 280
 
-[node name="ActorResourceList" type="ItemList" parent="Tabs/ActorDefinition/ActorBrowserSplit"]
+[node name="ActorResourceList" type="ItemList" parent="Tabs/ActorDefinition/ActorBrowserSplit" unique_id=166102786]
 unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 140)
 layout_mode = 2
 size_flags_horizontal = 3
 size_flags_vertical = 3
-custom_minimum_size = Vector2(0, 140)
 
-[node name="ActorResourceDetail" type="TextEdit" parent="Tabs/ActorDefinition/ActorBrowserSplit"]
+[node name="ActorResourceDetail" type="TextEdit" parent="Tabs/ActorDefinition/ActorBrowserSplit" unique_id=1886658853]
 unique_name_in_owner = true
 layout_mode = 2
 size_flags_horizontal = 3
 size_flags_vertical = 3
 editable = false
 
-[node name="ResultLabel" type="Label" parent="."]
+[node name="ResultLabel" type="Label" parent="." unique_id=872044016]
 unique_name_in_owner = true
-layout_mode = 2
+modulate = Color(0.65, 1, 0.7, 1)
 custom_minimum_size = Vector2(240, 56)
+layout_mode = 2
+text = "actor form ready"
 autowrap_mode = 2
-text = "ready"
 
-[node name="DirPicker" type="EditorFileDialog" parent="."]
+[node name="DirPicker" type="EditorFileDialog" parent="." unique_id=697535210]
 unique_name_in_owner = true
-title = "Select Save Folder"
+title = "Open a Directory"
 ok_button_text = "Select"
-access = 2
 file_mode = 2
-
-[node name="CatalogFilePicker" type="EditorFileDialog" parent="."]
-unique_name_in_owner = true
-title = "Select Actor Catalog"
-ok_button_text = "Select"
 access = 2
+
+[node name="CatalogFilePicker" type="EditorFileDialog" parent="." unique_id=625593636]
+unique_name_in_owner = true
+title = "Open a File"
+ok_button_text = "Select"
 file_mode = 0
+access = 2
 filters = PackedStringArray("*.tres ; Text Resource", "*.res ; Binary Resource")

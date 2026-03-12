@@ -53,6 +53,10 @@ var _effect_rows: Array[Dictionary] = []
 @onready var _actor_passive_ids_input: LineEdit = %ActorPassiveIdsInput
 @onready var _actor_ai_profile_input: LineEdit = %ActorAiProfileInput
 @onready var _actor_capture_profile_input: LineEdit = %ActorCaptureProfileInput
+@onready var _catalog_unbind_actor_id_input: LineEdit = get_node_or_null("Tabs/ActorDefinition/CatalogTools/CatalogUnbindActorIdInput")
+@onready var _unbind_actor_button: Button = get_node_or_null("Tabs/ActorDefinition/CatalogTools/UnbindActorButton")
+@onready var _validate_catalog_button: Button = get_node_or_null("Tabs/ActorDefinition/CatalogTools/ValidateCatalogButton")
+@onready var _repair_catalog_button: Button = get_node_or_null("Tabs/ActorDefinition/CatalogTools/RepairCatalogButton")
 
 @onready var _actor_browser_dir_input: LineEdit = %ActorBrowserDirInput
 @onready var _actor_resource_list: ItemList = %ActorResourceList
@@ -90,6 +94,12 @@ func _bind_signals() -> void:
 	%ResetItemButton.pressed.connect(_reset_item_form)
 	%CreateActorButton.pressed.connect(_on_create_actor_pressed)
 	%ResetActorButton.pressed.connect(_reset_actor_form)
+	if _validate_catalog_button != null:
+		_validate_catalog_button.pressed.connect(_on_validate_catalog_pressed)
+	if _repair_catalog_button != null:
+		_repair_catalog_button.pressed.connect(_on_repair_catalog_pressed)
+	if _unbind_actor_button != null:
+		_unbind_actor_button.pressed.connect(_on_unbind_actor_pressed)
 	%RefreshItemBrowserButton.pressed.connect(_refresh_item_browser)
 	%RefreshActorBrowserButton.pressed.connect(_refresh_actor_browser)
 	_item_resource_list.item_selected.connect(_on_item_resource_selected)
@@ -325,6 +335,65 @@ func _on_create_actor_pressed() -> void:
 	_set_result("actor created, catalog update failed: %s" % append_err, true)
 
 
+func _on_validate_catalog_pressed() -> void:
+	var catalog_path := _actor_catalog_path_input.text.strip_edges()
+	var catalog_or_error := _load_catalog_for_tools(catalog_path)
+	if not (catalog_or_error is ActorCatalog):
+		_set_result(String(catalog_or_error), true)
+		return
+
+	var catalog := catalog_or_error as ActorCatalog
+	var report := catalog.validate_catalog()
+	_set_result(_build_catalog_report_message("validate", catalog_path, report), not bool(report.get("ok", false)))
+
+
+func _on_repair_catalog_pressed() -> void:
+	var catalog_path := _actor_catalog_path_input.text.strip_edges()
+	var catalog_or_error := _load_catalog_for_tools(catalog_path)
+	if not (catalog_or_error is ActorCatalog):
+		_set_result(String(catalog_or_error), true)
+		return
+
+	var catalog := catalog_or_error as ActorCatalog
+	var report := catalog.repair_catalog()
+	var save_err := ResourceSaver.save(catalog, catalog_path)
+	if save_err != OK:
+		_set_result("repair finished but failed to save catalog (%d): %s" % [save_err, catalog_path], true)
+		return
+
+	_refresh_filesystem()
+	_refresh_actor_browser()
+	_set_result(_build_catalog_report_message("repair", catalog_path, report), not bool(report.get("ok", false)))
+
+
+func _on_unbind_actor_pressed() -> void:
+	var catalog_path := _actor_catalog_path_input.text.strip_edges()
+	var target_actor_id := _resolve_unbind_actor_id()
+	if target_actor_id.is_empty():
+		_set_result("unbind actor_id is empty (fill unbind input or select an actor in browser)", true)
+		return
+
+	var catalog_or_error := _load_catalog_for_tools(catalog_path)
+	if not (catalog_or_error is ActorCatalog):
+		_set_result(String(catalog_or_error), true)
+		return
+
+	var catalog := catalog_or_error as ActorCatalog
+	var removed_count := _unbind_actor_from_catalog(catalog, target_actor_id)
+	if removed_count <= 0:
+		_set_result("actor_id not found in catalog: %s" % String(target_actor_id), true)
+		return
+
+	var save_err := ResourceSaver.save(catalog, catalog_path)
+	if save_err != OK:
+		_set_result("unbind succeeded but failed to save catalog (%d): %s" % [save_err, catalog_path], true)
+		return
+
+	_refresh_filesystem()
+	_refresh_actor_browser()
+	_set_result("catalog updated: removed %d entry(s) actor_id=%s" % [removed_count, String(target_actor_id)], false)
+
+
 func _refresh_item_browser() -> void:
 	_item_resource_list.clear()
 	_item_browser_paths.clear()
@@ -408,6 +477,8 @@ func _on_actor_resource_selected(index: int) -> void:
 	lines.append("ai_profile_id: %s" % String(actor.ai_profile_id))
 	lines.append("capture_profile_id: %s" % String(actor.capture_profile_id))
 	_actor_resource_detail.text = "\n".join(lines)
+	if _catalog_unbind_actor_id_input != null:
+		_catalog_unbind_actor_id_input.text = String(actor.actor_id)
 
 
 func _collect_resource_files(root_dir: String) -> Array[String]:
@@ -464,6 +535,20 @@ func _append_actor_to_catalog(catalog_path: String, actor_path: String, actor_id
 		return "resource is not ActorCatalog: %s" % catalog_path
 
 	var typed_catalog := catalog as ActorCatalog
+	var precheck := typed_catalog.validate_catalog()
+	if not bool(precheck.get("ok", false)):
+		var errors_any: Variant = precheck.get("errors", [])
+		var errors: PackedStringArray = []
+		if errors_any is PackedStringArray:
+			errors = errors_any
+		elif errors_any is Array:
+			for entry in errors_any:
+				errors.append(String(entry))
+		var first_error := "unknown error"
+		if not errors.is_empty():
+			first_error = errors[0]
+		return "catalog invalid, run Repair Catalog first: %s" % first_error
+
 	for existing in typed_catalog.actors:
 		if existing == null:
 			continue
@@ -481,6 +566,78 @@ func _append_actor_to_catalog(catalog_path: String, actor_path: String, actor_id
 
 	_refresh_filesystem()
 	return ""
+
+
+func _load_catalog_for_tools(catalog_path: String) -> Variant:
+	if catalog_path.is_empty():
+		return "catalog_path is empty"
+	if not catalog_path.begins_with("res://"):
+		return "catalog_path must start with res://"
+	if not ResourceLoader.exists(catalog_path):
+		return "catalog file does not exist: %s" % catalog_path
+
+	var catalog := load(catalog_path)
+	if not (catalog is ActorCatalog):
+		return "resource is not ActorCatalog: %s" % catalog_path
+	return catalog
+
+
+func _unbind_actor_from_catalog(catalog: ActorCatalog, target_actor_id: StringName) -> int:
+	var kept: Array[ActorDefinition] = []
+	var removed_count := 0
+	for actor in catalog.actors:
+		if actor != null and actor.actor_id == target_actor_id:
+			removed_count += 1
+			continue
+		kept.append(actor)
+	catalog.actors = kept
+	return removed_count
+
+
+func _resolve_unbind_actor_id() -> StringName:
+	if _catalog_unbind_actor_id_input != null:
+		var from_unbind_input := _catalog_unbind_actor_id_input.text.strip_edges()
+		if not from_unbind_input.is_empty():
+			return StringName(from_unbind_input)
+
+	var selected := _actor_resource_list.get_selected_items()
+	if selected.is_empty():
+		return &""
+
+	var selected_index := int(selected[0])
+	if selected_index < 0 or selected_index >= _actor_browser_paths.size():
+		return &""
+
+	var selected_path := _actor_browser_paths[selected_index]
+	var selected_res := load(selected_path)
+	if selected_res is ActorDefinition:
+		var selected_actor := selected_res as ActorDefinition
+		return selected_actor.actor_id
+	return &""
+
+
+func _build_catalog_report_message(action: String, catalog_path: String, report: Dictionary) -> String:
+	var ok := bool(report.get("ok", false))
+	var total_count := int(report.get("total_count", 0))
+	var valid_count := int(report.get("valid_count", 0))
+	var error_count := int(report.get("error_count", 0))
+	var removed_count := int(report.get("removed_count", 0))
+	var base := "catalog %s [%s] total=%d valid=%d errors=%d removed=%d" % [
+		action,
+		catalog_path,
+		total_count,
+		valid_count,
+		error_count,
+		removed_count,
+	]
+	if ok:
+		return base
+	var errors_any: Variant = report.get("errors", [])
+	if errors_any is PackedStringArray and not (errors_any as PackedStringArray).is_empty():
+		return "%s | first_error=%s" % [base, (errors_any as PackedStringArray)[0]]
+	if errors_any is Array and not (errors_any as Array).is_empty():
+		return "%s | first_error=%s" % [base, String((errors_any as Array)[0])]
+	return base
 
 
 func _build_tags(extra_tags_csv: String) -> Array[StringName]:
@@ -547,6 +704,8 @@ func _reset_item_form() -> void:
 func _reset_actor_form() -> void:
 	_actor_save_dir_input.text = DEFAULT_ACTOR_SAVE_DIR
 	_actor_catalog_path_input.text = DEFAULT_ACTOR_CATALOG_PATH
+	if _catalog_unbind_actor_id_input != null:
+		_catalog_unbind_actor_id_input.text = ""
 	_actor_file_name_input.text = ""
 	_actor_id_input.text = ""
 	_actor_display_name_input.text = ""
