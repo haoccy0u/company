@@ -1,11 +1,14 @@
 [gd_scene format=3]
 
 [ext_resource type="Script" path="res://src/expedition_system/squad/SquadMember.gd" id="1_member_script"]
-[ext_resource type="Script" path="res://src/attribute_framework/AttributeComponent.gd" id="2_attr_component_script"]
+[ext_resource type="PackedScene" path="res://scenes/expedition/squad/AttributeComponentSM.tscn" id="2_attribute_component_sm_scene"]
+[ext_resource type="PackedScene" path="res://scenes/expedition/squad/InventoryComponentSM.tscn" id="3_inventory_component_sm_scene"]
 
 [node name="SquadMember" type="Node"]
 script = ExtResource("1_member_script")
 
-[node name="AttributeComponent" type="Node" parent="."]
+[node name="AttributeComponentSM" parent="." instance=ExtResource("2_attribute_component_sm_scene")]
 unique_name_in_owner = true
-script = ExtResource("2_attr_component_script")
+
+[node name="InventoryComponentSM" parent="." instance=ExtResource("3_inventory_component_sm_scene")]
+unique_name_in_owner = true

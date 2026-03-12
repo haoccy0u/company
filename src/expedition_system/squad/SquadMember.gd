@@ -1,9 +1,6 @@
 extends Node
 class_name SquadMember
 
-const AttributeSetRef = preload("res://src/attribute_framework/AttributeSet.gd")
-const RuntimeHpAttributeRef = preload("res://src/attribute_framework/RuntimeHpAttribute.gd")
-
 @export var member_id: StringName = &""
 @export var player_actor_id: StringName = &""
 @export var actor_id: StringName = &""
@@ -16,7 +13,10 @@ const RuntimeHpAttributeRef = preload("res://src/attribute_framework/RuntimeHpAt
 @export var capture_meta: Dictionary = {}
 @export var long_states: Dictionary = {}
 
-@export var attribute_component_path: NodePath = ^"AttributeComponent"
+@export var attribute_component_path: NodePath = ^"AttributeComponentSM"
+@export var inventory_component_path: NodePath = ^"InventoryComponentSM"
+
+var _equipment_sync_ok: bool = true
 
 
 func initialize_from_player(
@@ -41,12 +41,29 @@ func initialize_from_player(
 	resources = {}
 	capture_meta = {}
 	long_states = {}
+	_equipment_sync_ok = true
 
 	var attribute_component := _get_attribute_component()
 	if attribute_component == null:
-		push_error("SquadMember.initialize_from_player failed: missing AttributeComponent")
+		push_error("SquadMember.initialize_from_player failed: missing AttributeComponentSM")
 		return false
-	attribute_component.attribute_set = _build_attribute_set(actor_def)
+	var inventory_component := _get_inventory_component()
+	if inventory_component == null:
+		push_error("SquadMember.initialize_from_player failed: missing InventoryComponentSM")
+		return false
+	_bind_inventory_signals(inventory_component)
+
+	if not attribute_component.initialize_from_actor_def(actor_def):
+		push_error("SquadMember.initialize_from_player failed: AttributeComponentSM initialization failed")
+		return false
+
+	if not inventory_component.set_equipment_ids(equipment_ids):
+		push_error("SquadMember.initialize_from_player failed: equipment parsing failed")
+		return false
+	if not _equipment_sync_ok:
+		push_error("SquadMember.initialize_from_player failed: equipment effects apply failed")
+		return false
+
 	return true
 
 
@@ -64,6 +81,17 @@ func get_attribute_value(attribute_name: String, fallback: float = 0.0) -> float
 	return attribute.get_value()
 
 
+func refresh_equipment_effects() -> bool:
+	var inventory_component := _get_inventory_component()
+	if inventory_component == null:
+		push_error("SquadMember.refresh_equipment_effects failed: missing InventoryComponentSM")
+		return false
+	_equipment_sync_ok = true
+	if not inventory_component.set_equipment_ids(equipment_ids):
+		return false
+	return _equipment_sync_ok
+
+
 func to_snapshot_dict() -> Dictionary:
 	return {
 		"unit_uid": unit_uid,
@@ -76,47 +104,46 @@ func to_snapshot_dict() -> Dictionary:
 	}
 
 
-func _build_attribute_set(actor_def: ActorDefinition) -> AttributeSet:
-	var attr_set: AttributeSet = AttributeSetRef.new()
-	var attrs: Array[Attribute] = []
-
-	attrs.append(_make_basic_attribute("strength", actor_def.strength))
-	attrs.append(_make_basic_attribute("constitution", actor_def.constitution))
-	attrs.append(_make_basic_attribute("dexterity", actor_def.dexterity))
-	attrs.append(_make_basic_attribute("perception", actor_def.perception))
-	attrs.append(_make_basic_attribute("will", actor_def.will))
-	attrs.append(_make_basic_attribute("intelligence", actor_def.intelligence))
-	attrs.append(_make_basic_attribute("luck", actor_def.luck))
-
-	var hp_max_value: float = maxf(actor_def.constitution * 10.0, 1.0)
-	attrs.append(_make_basic_attribute("hp_max", hp_max_value))
-	attrs.append(_make_hp_attribute("hp", hp_max_value))
-
-	attr_set.attributes = attrs
-	return attr_set
+func _bind_inventory_signals(inventory_component: InventoryComponentSM) -> void:
+	if not inventory_component.equipment_effects_changed.is_connected(_on_equipment_effects_changed):
+		inventory_component.equipment_effects_changed.connect(_on_equipment_effects_changed)
+	if not inventory_component.equipment_effects_invalid.is_connected(_on_equipment_effects_invalid):
+		inventory_component.equipment_effects_invalid.connect(_on_equipment_effects_invalid)
 
 
-func _make_basic_attribute(attribute_name: String, base_value: float) -> Attribute:
-	var attribute: Attribute = Attribute.new()
-	attribute.attribute_name = attribute_name
-	attribute.base_value = base_value
-	return attribute
+func _on_equipment_effects_changed(effects: Dictionary) -> void:
+	var attribute_component := _get_attribute_component()
+	if attribute_component == null:
+		_equipment_sync_ok = false
+		push_error("SquadMember._on_equipment_effects_changed failed: missing AttributeComponentSM")
+		return
+
+	_equipment_sync_ok = attribute_component.apply_equipment_effects(effects)
+	if not _equipment_sync_ok:
+		push_error("SquadMember._on_equipment_effects_changed failed: apply_equipment_effects returned false")
 
 
-func _make_hp_attribute(attribute_name: String, base_value: float) -> Attribute:
-	var attribute: RuntimeHpAttribute = RuntimeHpAttributeRef.new()
-	attribute.attribute_name = attribute_name
-	attribute.base_value = base_value
-	return attribute
+func _on_equipment_effects_invalid(reason: String) -> void:
+	_equipment_sync_ok = false
+	push_error("SquadMember received invalid equipment effects: %s" % reason)
 
 
-func _get_attribute_component() -> AttributeComponent:
+func _get_attribute_component() -> AttributeComponentSM:
 	var node = get_node_or_null(attribute_component_path)
 	if node == null:
 		return null
-	if not (node is AttributeComponent):
+	if not (node is AttributeComponentSM):
 		return null
-	return node as AttributeComponent
+	return node as AttributeComponentSM
+
+
+func _get_inventory_component() -> InventoryComponentSM:
+	var node = get_node_or_null(inventory_component_path)
+	if node == null:
+		return null
+	if not (node is InventoryComponentSM):
+		return null
+	return node as InventoryComponentSM
 
 
 func _build_member_id(source_player_actor_id: StringName, member_index: int) -> StringName:
