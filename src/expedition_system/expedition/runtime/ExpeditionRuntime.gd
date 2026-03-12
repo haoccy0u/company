@@ -423,15 +423,15 @@ func _build_squad_runtime(request: RefCounted) -> Node:
 	var squad_node: Node = request.squad_scene.instantiate()
 	if squad_node == null:
 		return null
-	if not squad_node.has_method("build_from_roster"):
-		push_error("ExpeditionRuntime: squad scene missing build_from_roster()")
+	if not squad_node.has_method("build_from_roster_state"):
+		push_error("ExpeditionRuntime: squad scene missing build_from_roster_state()")
 		squad_node.queue_free()
 		return null
 
 	_squad_host.add_child(squad_node)
 	var built: bool = squad_node.call(
-		"build_from_roster",
-		request.player_roster,
+		"build_from_roster_state",
+		request.player_roster_state,
 		request.selected_player_actor_ids,
 		request.actor_catalog
 	)

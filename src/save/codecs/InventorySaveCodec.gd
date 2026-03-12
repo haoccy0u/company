@@ -1,7 +1,7 @@
 extends RefCounted
 class_name InventorySaveCodec
 
-const SAVE_SCAN_ROOT := "res://data"
+const ITEM_DATA_RESOLVER := preload("res://src/inventory/ItemDataResolver.gd")
 
 
 static func capture(component: InventoryComponent) -> Dictionary:
@@ -41,9 +41,15 @@ static func apply(component: InventoryComponent, data: Dictionary) -> bool:
 	if container == null:
 		return false
 
-	var saved_slot_count: int = int(data.get("slot_count", container.slot_count))
-	if saved_slot_count >= 0 and saved_slot_count != container.slot_count:
-		container.slot_count = saved_slot_count
+	var validation: Dictionary = _validate_and_prepare_updates(component, data)
+	if not bool(validation.get("ok", false)):
+		return false
+
+	var target_slot_count: int = int(validation.get("slot_count", container.slot_count))
+	var prepared_entries: Array = validation.get("entries", [])
+
+	if target_slot_count != container.slot_count:
+		container.slot_count = target_slot_count
 
 	for i in range(container.slots.size()):
 		var slot: Slot = container.slots[i]
@@ -52,35 +58,20 @@ static func apply(component: InventoryComponent, data: Dictionary) -> bool:
 			container.slots[i] = slot
 		slot.clear()
 
-	var slots_variant: Variant = data.get("slots", [])
-	if not (slots_variant is Array):
-		return true
-
-	var resolve_cache: Dictionary = {}
-	var slots_data: Array = slots_variant
-	for entry_variant in slots_data:
-		if not (entry_variant is Dictionary):
-			continue
-
-		var entry: Dictionary = entry_variant
-		var index: int = int(entry.get("index", -1))
-		if index < 0 or index >= container.slots.size():
-			continue
-
-		var item: ItemData = _resolve_saved_item(component, entry, resolve_cache)
-		if item == null:
-			continue
-
-		var count: int = maxi(int(entry.get("count", 0)), 0)
-		if count <= 0:
-			continue
+	for prepared_variant in prepared_entries:
+		var prepared: Dictionary = prepared_variant
+		var index: int = int(prepared.get("index", -1))
+		var item: ItemData = prepared.get("item", null) as ItemData
+		var count: int = int(prepared.get("count", 0))
+		if item == null or count <= 0:
+			return false
 
 		var target_slot: Slot = container.slots[index]
 		if target_slot == null:
 			target_slot = Slot.new()
 			container.slots[index] = target_slot
 		target_slot.item = item
-		target_slot.count = mini(count, maxi(item.max_stack, 1))
+		target_slot.count = count
 
 	return true
 
@@ -105,7 +96,7 @@ static func _resolve_saved_item(component: InventoryComponent, entry: Dictionary
 			resolve_cache[item_id] = from_slots
 		return from_slots
 
-	var from_data: ItemData = _find_item_in_dir_by_id(item_id, SAVE_SCAN_ROOT)
+	var from_data: ItemData = ITEM_DATA_RESOLVER.resolve(item_id)
 	if from_data != null and not item_id.is_empty():
 		resolve_cache[item_id] = from_data
 	return from_data
@@ -128,37 +119,53 @@ static func _find_item_in_existing_slots(component: InventoryComponent, item_id:
 	return null
 
 
-static func _find_item_in_dir_by_id(item_id: StringName, root_dir: String) -> ItemData:
-	if item_id.is_empty():
-		return null
+static func _validate_and_prepare_updates(component: InventoryComponent, data: Dictionary) -> Dictionary:
+	if component == null or data.is_empty():
+		return {"ok": false}
+	if component.container == null:
+		return {"ok": false}
 
-	var dir: DirAccess = DirAccess.open(root_dir)
-	if dir == null:
-		return null
+	var target_slot_count: int = int(data.get("slot_count", component.container.slot_count))
+	if target_slot_count < 0:
+		return {"ok": false}
 
-	dir.list_dir_begin()
-	while true:
-		var entry_name: String = dir.get_next()
-		if entry_name.is_empty():
-			break
-		if entry_name.begins_with("."):
-			continue
+	var slots_variant: Variant = data.get("slots", [])
+	if not (slots_variant is Array):
+		return {"ok": false}
 
-		var path: String = "%s/%s" % [root_dir, entry_name]
-		if dir.current_is_dir():
-			var nested: ItemData = _find_item_in_dir_by_id(item_id, path)
-			if nested != null:
-				dir.list_dir_end()
-				return nested
-			continue
+	var resolve_cache: Dictionary = {}
+	var seen_indices: Dictionary = {}
+	var prepared_entries: Array[Dictionary] = []
 
-		if not entry_name.ends_with(".tres") and not entry_name.ends_with(".res"):
-			continue
+	var slots_data: Array = slots_variant
+	for entry_variant in slots_data:
+		if not (entry_variant is Dictionary):
+			return {"ok": false}
 
-		var loaded: Resource = ResourceLoader.load(path)
-		if loaded is ItemData and (loaded as ItemData).item_id == item_id:
-			dir.list_dir_end()
-			return loaded as ItemData
-	dir.list_dir_end()
+		var entry: Dictionary = entry_variant
+		var index: int = int(entry.get("index", -1))
+		if index < 0 or index >= target_slot_count:
+			return {"ok": false}
+		if seen_indices.has(index):
+			return {"ok": false}
+		seen_indices[index] = true
 
-	return null
+		var item: ItemData = _resolve_saved_item(component, entry, resolve_cache)
+		if item == null:
+			return {"ok": false}
+
+		var raw_count: int = int(entry.get("count", 0))
+		if raw_count <= 0:
+			return {"ok": false}
+
+		prepared_entries.append({
+			"index": index,
+			"item": item,
+			"count": mini(raw_count, maxi(item.max_stack, 1)),
+		})
+
+	return {
+		"ok": true,
+		"slot_count": target_slot_count,
+		"entries": prepared_entries,
+	}

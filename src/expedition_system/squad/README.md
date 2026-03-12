@@ -4,7 +4,7 @@
 
 - `Squad.gd`
   - squad runtime container node
-  - builds members from `PlayerActorRoster + ActorCatalog`
+  - builds members from `PlayerRosterState + ActorCatalog`
   - owns squad shared state (`get_shared/set_shared/inc_shared_int`)
   - exports final run snapshot
 

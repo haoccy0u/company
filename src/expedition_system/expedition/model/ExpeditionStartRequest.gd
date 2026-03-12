@@ -5,7 +5,7 @@ var location: Resource
 var difficulty: int = 0
 var options: Dictionary = {}
 var squad_scene: PackedScene
-var player_roster: Resource
+var player_roster_state: Node
 var selected_player_actor_ids: Array[StringName] = []
 var actor_catalog: Resource
 var run_seed: int = 0
@@ -16,7 +16,9 @@ func is_valid() -> bool:
 		return false
 	if squad_scene == null:
 		return false
-	if player_roster == null:
+	if player_roster_state == null:
+		return false
+	if not player_roster_state.has_method("find_player_actor"):
 		return false
 	if actor_catalog == null:
 		return false

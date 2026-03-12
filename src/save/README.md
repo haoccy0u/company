@@ -1,124 +1,178 @@
-﻿# 存档系统说明（V1）
+﻿# 存档系统说明（V2）
 
-## 1. 目标与原则
-- 目标：提供可复用、可扩展的通用存档框架，支持后续模块持续接入。
-- 存储格式：JSON（便于调试、定位问题、人工排查）。
-- 存档路径：`user://saves/`。
-- 设计原则：业务模块只负责“导出/恢复自身状态”，文件读写统一由 `SaveManager` 处理。
+## 1. 目标
+- 当前目标：先把单文件 JSON 的存档/读档行为做稳，不做分片。
+- 重点：正确性、可诊断性、可回滚。
 
-## 2. 当前目录结构
-- `src/save/SaveManager.gd`：存档总控（Autoload 单例）。
-- `src/save/Saveable.gd`：Saveable 协议校验（鸭子类型检查）。
-- `src/save/SaveReport.gd`：存档结果对象（report）构建与字段访问工具。
-- `src/save/codecs/InventorySaveCodec.gd`：库存编解码逻辑。
-- `src/save/README.md`：本文档。
+## 2. 存储与结构
+- 存档目录：`user://saves/`
+- 文件命名：`save_slot_{id}.json`
+- 文件结构（V2）：
 
-## 3. 核心架构
-
-### 3.1 SaveManager（统一编排）
-- 负责收集可存档节点、序列化 JSON、写盘、读盘、分发恢复数据。
-- 对外主入口：
-  - `SaveManager.save_slot(save_slot_id)`
-  - `SaveManager.load_slot(save_slot_id)`
-  - `SaveManager.delete_slot(save_slot_id)`
-  - `SaveManager.list_save_slots()`
-
-### 3.2 Saveable 协议（模块接入标准）
-- 任意节点加入 `saveable` 组后，如果实现以下方法，即可被框架接入：
-  - `get_save_id() -> String`
-  - `capture_state() -> Dictionary`
-  - `apply_state(data: Dictionary) -> bool`
-- 可选：
-  - `get_save_type() -> String`（用于日志和调试分类）
-
-### 3.3 Codec 层（推荐）
-- 编解码逻辑放在 `src/save/codecs/*`，避免把复杂序列化代码堆到业务组件里。
-- 业务组件保持薄层：
-  - `capture_state()` 只委托给 codec
-  - `apply_state(data)` 只委托给 codec
-
-## 4. 命名约定（避免与 Inventory 的 slot 混淆）
-- 存档槽位统一命名为 `save_slot`。
-- 默认文件命名：
-  - `user://saves/save_slot_1.json`
-  - `user://saves/save_slot_2.json`
-- 方法参数统一使用 `save_slot_id`（而不是 `slot`）。
-
-## 5. JSON 结构（V1）
 ```json
 {
-  "version": 1,
-  "saved_at_unix": 1739400000,
-  "nodes": [
+  "meta": {
+    "version": 2,
+    "saved_at_unix": 1739400000
+  },
+  "domains": {},
+  "scene_nodes": [
     {
       "id": "player_inventory",
       "type": "inventory",
-      "state": {
-        "slot_count": 27,
-        "container_id": "backpack",
-        "slots": [
-          { "index": 0, "item_id": "red", "item_path": "res://data/item_red.tres", "count": 32 }
-        ]
-      }
+      "state": {}
     }
   ]
 }
 ```
 
-## 6. 在项目中如何使用
-1. 在 `project.godot` 中将 `SaveManager.gd` 配置为 Autoload，名称为 `SaveManager`。
-2. 需要存档的节点加入 `saveable` 组。
-3. 调用：
-   - 保存：`SaveManager.save_slot(1)`
-   - 读取：`SaveManager.load_slot(1)`
+说明：
+- `scene_nodes`：由 `saveable` 组节点导出/恢复。
+- `domains`：预留的全局域数据入口（本轮先保留空对象）。
+
+## 3. SaveManager 行为（V2）
+对外入口保持不变：
+- `SaveManager.save_slot(save_slot_id)`
+- `SaveManager.load_slot(save_slot_id)`
+- `SaveManager.load_slot_filtered(save_slot_id, allowed_save_ids)`
+- `SaveManager.delete_slot(save_slot_id)`
+- `SaveManager.list_save_slots()`
+
+### 3.1 保存阶段
+`collect -> validate -> build_payload -> atomic_write -> finalize_report`
+
+### 3.2 读取阶段
+`read_text -> parse_with_error -> validate_schema/version -> apply -> finalize_report`
+
+### 3.3 原子写入
+- 先写临时文件：`*.json.tmp`
+- 再提交覆盖正式文件
+- 写入失败时保留旧正式文件
+
+## 4. SaveReport 契约（工程化）
+主字段：
+- `status`: `succeeded | partial | failed`
+- `success`: 布尔兼容字段，规则：`status != failed`
+- `ok`: 兼容字段（已弃用，值与 `success` 同步）
+
+诊断字段：
+- `errors`: `Array[Dictionary]`
+- `warnings`: `Array[Dictionary]`
+- `saved_ids / loaded_ids / missing_ids / skipped_nodes`
+- `metrics`:
+  - `saved_count`
+  - `loaded_count`
+  - `missing_count`
+  - `skipped_count`
+- `meta`:
+  - `action`
+  - `save_slot_id`
+  - `path`
+  - `schema_version`
+  - `generated_at_unix`
+
+错误/警告项结构：
+```json
+{
+  "code": "SAVE.PARSE.JSON_PARSE_FAILED",
+  "stage": "parse",
+  "message": "具体错误信息",
+  "context": {}
+}
+```
+
+## 5. Saveable 接入要求
+节点加入 `saveable` 组后，需要实现：
+- `get_save_id() -> String`
+- `capture_state() -> Dictionary`
+- `apply_state(data: Dictionary) -> bool`
+
+可选：
+- `get_save_type() -> String`
+
+建议：
+- 关键模块必须提供稳定 `save_id`，不要依赖动态节点路径。
+
+### 5.1 save_id 命名规范（路径式）
+推荐格式：`<system>/<object>/<instance>`（全局单例可 2 段）
+
+规则：
+- 全小写
+- 分段使用 `/`
+- 每段只允许 `a-z0-9_`
+- 推荐 3 段，允许 2 段
+
+示例（推荐）：
+- `inventory/player/main_bag`
+- `inventory/chest/chest_01`
+- `progress/player/roster`
+- `progress/player/item_vault`
+
+反例（不推荐）：
+- `/root/Inventorytest/player/PlayerInv`（节点路径，不稳定）
+- `Inventory/Player/MainBag`（大写）
+- `inventory-player-main`（分隔符不规范）
 
 说明：
-- `SaveManager.gd` 作为 Autoload 使用即可，不需要 `class_name`。
+- 当前版本对非标准格式只记 `warning`（`SAVE.COLLECT.NON_STANDARD_SAVE_ID`），不阻断保存。
+- `save_id` 仍必须满足“非空 + 同场景唯一”。
 
-## 7. 新模块接入流程（面向后续扩展）
+### 5.2 手动配置 saveable（检查器）
+1. 在场景树选中目标节点。  
+2. 右侧 `Node` 面板 -> `Groups` -> 添加组名 `saveable`。  
+3. 确认脚本实现：
+   - `get_save_id() -> String`
+   - `capture_state() -> Dictionary`
+   - `apply_state(data: Dictionary) -> bool`
+4. 在检查器里设置稳定 `save_id`（例如 `inventory/player/main_bag`）。  
+5. 运行后执行一次 `save_slot -> load_slot` 回归，确认 report 无重复/空 id 错误。
 
-以“玩家属性模块”或“任务模块”为例，推荐按以下步骤：
-1. 在业务组件中实现 Saveable 协议方法（`get_save_id/capture_state/apply_state`）。
-2. 新建对应 codec（例如 `AttributeSaveCodec.gd`），封装模块的状态转换。
-3. 组件方法内只委托 codec，不直接写复杂序列化细节。
-4. 为该组件设置稳定且唯一的 `save_id`（同场景树内不可重复）。
-5. 在测试场景做保存-修改-读取回归验证。
+## 6. Codec 约定模板
+- 工具骨架：`src/save/codecs/SaveCodecUtils.gd`
+  - `ok(...) / fail(...) / make_issue(...)`
+  - `dict_or_empty(...) / array_or_empty(...)`
+- 模板文件：`src/save/codecs/SaveCodecTemplate.gd`
+  - 约定结构：`capture -> validate_and_prepare -> apply`
+  - 新系统建议复制该模板，再替换为自己的组件类型和字段。
 
-## 8. 库存模块接入约定（当前实现）
-- 存纯数据，不存对象引用。
-- 关键字段：
-  - `slot_count`
-  - `container_id`
-  - `slots[index, item_id, item_path, count]`
-- 读档恢复顺序：
-  - 先按 `item_path` 恢复
-  - 再按 `item_id` 兜底查找
+## 7. Inventory 行为约束（V2）
+- `InventorySaveCodec.apply()` 采用“先完整校验，再清空并应用”的策略。
+- 校验失败时返回 `false`，避免坏档把运行态清空。
+- 物品恢复优先使用缓存/解析器，避免反复递归全目录扫描。
 
-## 9. 版本与兼容策略
-- 当前版本：`version = 1`
-- 后续如果存档结构变更，建议在 `SaveManager` 增加版本迁移流程。
-- 旧文件名若是 `slot_*.json`，请迁移或重命名为 `save_slot_*.json` 才能被当前版本识别。
+## 8. PlayerProgress（场景化 Autoload）
+- 全局入口：`/root/PlayerProgressRoot`（`res://src/player_progress/PlayerProgressRoot.tscn`）。
+- 启动自举（默认 `save_slot=1`）：
+  - 若 slot 存在：调用 `load_slot_filtered`，仅加载 `progress/player/*`。
+  - 若 slot 不存在：创建空 roster，并立即 `save_slot(1)` 生成首档。
+  - 若加载失败：回退到空 roster，并记录 `boot_status=load_failed_fallback_empty`。
+- 子模块按 saveable 独立接入：
+  - `progress/player/roster`（`PlayerRosterState`）
+  - `progress/player/item_vault`（`PlayerItemVaultState`，当前为空壳）
+- `PlayerRosterState` 使用 `PlayerProgressCodec` 的 `roster` 分支：
+  - 结构：`schema_version + roster.players`
+  - 读档行为：先完整校验再提交，失败时返回 `false`，不覆盖当前运行态。
+- `PlayerRosterState` 初始化不再依赖默认 `.tres`，统一为空模板初始化（`reset_to_empty_roster`）。
 
-## 10. 测试建议
+## 9. 兼容策略
+- 当前只接受 `meta.version == 2`。
+- V1/非法结构读取会返回 `failed` 与 `unsupported_version`（不做自动迁移）。
+- `ok` 字段暂时保留一版，后续可删除。
+- 旧档中缺失 `progress/player/*` 条目时，不会导致崩溃；对应模块保持默认运行态。
 
-### 10.1 功能验证
-1. 进入测试场景，调整库存状态。
-2. 执行 `save_slot` 保存。
-3. 再次改动状态。
-4. 执行 `load_slot` 读取。
-5. 确认状态回到保存时。
-
-### 10.2 异常验证
-1. 人工破坏 JSON（如删除 `state` 字段）。
-2. 执行读取，确认不会崩溃且有错误报告。
-3. 制造重复 `save_id`，确认日志能提示冲突。
-
-## 11. 与 data 目录的职责分工（新增约定）
-- `SaveManager` 负责玩家运行态（player state）落盘与恢复，路径为 `user://saves/`。
-- `res://data` 负责系统静态资源（system config），不承载玩家运行态进度。
-- 后续规划中，远征起局将以 `save_slot` 中的玩家 roster 为输入，不再依赖 `res://data` 下的玩家 roster 资源。
-
-### 后续 save 分支目标（计划，不是本轮实现）
-1. 为玩家 roster 提供 Saveable 接入（`capture_state/apply_state`）。
-2. 远征调试入口支持通过 `save_slot_id` 读取 roster。
-3. 在 save 链路稳定后，再实施 `data` 目录迁移与路径替换。
+## 10. 人工验证清单
+1. 正常回归：
+   - invtest 保存 -> 改库存 -> 读取，状态应恢复，`status = succeeded`。
+   - roster 保存 -> 修改运行态 roster -> 读取，`progress/player/roster` 恢复正确。
+   - 删除 `save_slot_1.json` 后启动，自动创建空 roster 并生成首档。
+2. 坏档防污染：
+   - 人工破坏 `scene_nodes` 或 `slots` 字段，读取后状态不应被清空，`status = failed`。
+   - 人工破坏 `progress/player/roster` 的 `players`，读取后 roster 不应被坏档覆盖。
+3. 原子写入：
+   - 模拟写入失败，确认旧档仍可读取。
+4. 重复/缺失 ID：
+   - 造重复 `save_id`、缺失节点，检查 `errors/warnings/metrics`。
+5. 版本门禁：
+   - 喂入 `version != 2` 的存档，返回明确错误码。
+6. 过滤加载隔离：
+   - 在 slot 中加入非 `progress/player/*` 条目，启动阶段应被过滤且不产生无关 `missing` warning。

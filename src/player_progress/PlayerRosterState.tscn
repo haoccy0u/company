@@ -1,0 +1,6 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://src/player_progress/PlayerRosterState.gd" id="1_roster_state_script"]
+
+[node name="PlayerRosterState" type="Node"]
+script = ExtResource("1_roster_state_script")

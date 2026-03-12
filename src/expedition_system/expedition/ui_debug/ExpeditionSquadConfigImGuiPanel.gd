@@ -5,11 +5,10 @@ const StartRequestRef = preload("res://src/expedition_system/expedition/model/Ex
 const RuntimeRef = preload("res://src/expedition_system/expedition/runtime/ExpeditionRuntime.gd")
 const LocationDefRef = preload("res://src/expedition_system/expedition/content/ExpeditionLocationDef.gd")
 const ActorCatalogRef = preload("res://src/actor_system/ActorCatalog.gd")
-const PlayerActorRosterRef = preload("res://src/actor_system/PlayerActorRoster.gd")
+const PLAYER_PROGRESS_ROOT_PATH := "/root/PlayerProgressRoot"
 
 const DEFAULT_LOCATION_PATH := "res://data/devtest/expedition_v2/locations/forest_outpost_v2.tres"
 const DEFAULT_ACTOR_CATALOG_PATH := "res://data/devtest/expedition_v2/actors/default_actor_catalog.tres"
-const DEFAULT_PLAYER_ROSTER_PATH := "res://data/devtest/expedition_v2/players/default_player_roster.tres"
 const DEFAULT_SQUAD_SCENE_PATH := "res://scenes/expedition/squad/Squad.tscn"
 const DEFAULT_SELECTED_IDS := "player_observer,player_robot"
 const INPUT_TEXT_CAPACITY: int = 512
@@ -19,7 +18,6 @@ const INPUT_TEXT_CAPACITY: int = 512
 @export var toggle_key: Key = KEY_F9
 @export var default_location_path: String = DEFAULT_LOCATION_PATH
 @export var default_actor_catalog_path: String = DEFAULT_ACTOR_CATALOG_PATH
-@export var default_player_roster_path: String = DEFAULT_PLAYER_ROSTER_PATH
 @export var default_squad_scene_path: String = DEFAULT_SQUAD_SCENE_PATH
 @export var default_selected_player_actor_ids: String = DEFAULT_SELECTED_IDS
 @export var default_difficulty: int = 1
@@ -30,10 +28,10 @@ var _runtime: Node
 var _imgui: Object
 var _visible: bool = true
 var _last_action_message: String = "idle"
+var _roster_source: String = "unknown"
 
 var _location_path_input: Array[String] = [DEFAULT_LOCATION_PATH]
 var _actor_catalog_path_input: Array[String] = [DEFAULT_ACTOR_CATALOG_PATH]
-var _player_roster_path_input: Array[String] = [DEFAULT_PLAYER_ROSTER_PATH]
 var _squad_scene_path_input: Array[String] = [DEFAULT_SQUAD_SCENE_PATH]
 var _selected_player_actor_ids_input: Array[String] = [DEFAULT_SELECTED_IDS]
 var _difficulty_input: Array[int] = [1]
@@ -97,7 +95,7 @@ func _draw_input_fields() -> void:
 	_imgui.SeparatorText("Start Input")
 	_imgui.InputText("location_path", _location_path_input, INPUT_TEXT_CAPACITY)
 	_imgui.InputText("actor_catalog_path", _actor_catalog_path_input, INPUT_TEXT_CAPACITY)
-	_imgui.InputText("player_roster_path", _player_roster_path_input, INPUT_TEXT_CAPACITY)
+	_imgui.Text("roster_source: %s" % _roster_source)
 	_imgui.InputText("squad_scene_path", _squad_scene_path_input, INPUT_TEXT_CAPACITY)
 	_imgui.InputText("selected_player_actor_ids(csv)", _selected_player_actor_ids_input, INPUT_TEXT_CAPACITY)
 	_imgui.DragInt("difficulty", _difficulty_input)
@@ -136,9 +134,8 @@ func _build_start_request() -> RefCounted:
 	if actor_catalog == null or actor_catalog.get_script() != ActorCatalogRef:
 		return null
 
-	var player_roster_path: String = _player_roster_path_input[0].strip_edges()
-	var player_roster := load(player_roster_path)
-	if player_roster == null or player_roster.get_script() != PlayerActorRosterRef:
+	var player_roster_state: Node = _resolve_player_roster_state()
+	if not _is_valid_player_roster_state(player_roster_state):
 		return null
 
 	var squad_scene_path: String = _squad_scene_path_input[0].strip_edges()
@@ -159,7 +156,7 @@ func _build_start_request() -> RefCounted:
 	var seed_value: int = _seed_input[0]
 	request.run_seed = 0 if seed_value < 0 else seed_value
 	request.actor_catalog = actor_catalog
-	request.player_roster = player_roster
+	request.player_roster_state = player_roster_state
 	request.squad_scene = squad_scene
 	request.selected_player_actor_ids = selected_player_actor_ids
 	if not request.is_valid():
@@ -223,9 +220,35 @@ func _has_imgui() -> bool:
 func _reset_inputs() -> void:
 	_location_path_input[0] = default_location_path
 	_actor_catalog_path_input[0] = default_actor_catalog_path
-	_player_roster_path_input[0] = default_player_roster_path
 	_squad_scene_path_input[0] = default_squad_scene_path
 	_selected_player_actor_ids_input[0] = default_selected_player_actor_ids
 	_difficulty_input[0] = default_difficulty
 	_sequence_length_input[0] = default_sequence_length
 	_seed_input[0] = default_seed
+	_roster_source = "unknown"
+
+
+func _resolve_player_roster_state() -> Node:
+	var from_progress: Node = _resolve_roster_state_from_progress_root()
+	if _is_valid_player_roster_state(from_progress):
+		_roster_source = "progress_state"
+		return from_progress
+
+	_roster_source = "invalid"
+	return null
+
+
+func _resolve_roster_state_from_progress_root() -> Node:
+	var progress_root: Node = get_node_or_null(PLAYER_PROGRESS_ROOT_PATH)
+	if progress_root == null:
+		return null
+
+	if progress_root.has_method("get_roster_state"):
+		var state_variant: Variant = progress_root.call("get_roster_state")
+		return state_variant as Node
+
+	return null
+
+
+func _is_valid_player_roster_state(roster_state: Node) -> bool:
+	return roster_state != null and roster_state.has_method("find_player_actor")

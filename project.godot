@@ -22,6 +22,7 @@ config/icon="res://icon.svg"
 [autoload]
 
 SaveManager="*res://src/save/SaveManager.gd"
+PlayerProgressRoot="*res://src/player_progress/PlayerProgressRoot.tscn"
 UIManager="*res://src/ui_framework/UIManager.gd"
 UIBootstrap="*res://src/ui_framework/UIBootstrap.gd"
 ImGuiRoot="*uid://dugmpnsxaagba"

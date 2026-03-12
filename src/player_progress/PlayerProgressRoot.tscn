@@ -1,0 +1,13 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://src/player_progress/PlayerProgressRoot.gd" id="1_root_script"]
+[ext_resource type="PackedScene" path="res://src/player_progress/PlayerRosterState.tscn" id="2_roster_state_scene"]
+[ext_resource type="Script" path="res://src/player_progress/PlayerItemVaultState.gd" id="3_item_vault_state_script"]
+
+[node name="PlayerProgressRoot" type="Node"]
+script = ExtResource("1_root_script")
+
+[node name="PlayerRosterState" parent="." instance=ExtResource("2_roster_state_scene")]
+
+[node name="PlayerItemVaultState" type="Node" parent="."]
+script = ExtResource("3_item_vault_state_script")
