@@ -13,5 +13,6 @@ item_blue = ExtResource("3_7p5s8")
 
 [node name="PlayerInv" type="Node" parent="." unique_id=1310806775]
 script = ExtResource("1_exrft")
+save_id = &"inventory/player/main_bag"
 container_template = ExtResource("2_pnocs")
 metadata/_custom_type_script = "uid://deh2x3u3uxjcr"
