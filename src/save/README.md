@@ -112,3 +112,13 @@
 1. 人工破坏 JSON（如删除 `state` 字段）。
 2. 执行读取，确认不会崩溃且有错误报告。
 3. 制造重复 `save_id`，确认日志能提示冲突。
+
+## 11. 与 data 目录的职责分工（新增约定）
+- `SaveManager` 负责玩家运行态（player state）落盘与恢复，路径为 `user://saves/`。
+- `res://data` 负责系统静态资源（system config），不承载玩家运行态进度。
+- 后续规划中，远征起局将以 `save_slot` 中的玩家 roster 为输入，不再依赖 `res://data` 下的玩家 roster 资源。
+
+### 后续 save 分支目标（计划，不是本轮实现）
+1. 为玩家 roster 提供 Saveable 接入（`capture_state/apply_state`）。
+2. 远征调试入口支持通过 `save_slot_id` 读取 roster。
+3. 在 save 链路稳定后，再实施 `data` 目录迁移与路径替换。
