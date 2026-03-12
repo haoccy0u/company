@@ -3,6 +3,7 @@ extends VBoxContainer
 
 const DEFAULT_ITEM_SAVE_DIR := "res://data/devtest/expedition_v2/items"
 const DEFAULT_ACTOR_SAVE_DIR := "res://data/devtest/expedition_v2/actors"
+const DEFAULT_ACTOR_CATALOG_PATH := "res://data/devtest/expedition_v2/actors/default_actor_catalog.tres"
 const OPERATION_TYPES: Array[StringName] = [ &"add", &"sub", &"mult", &"div" ]
 
 enum PathTarget {
@@ -35,6 +36,7 @@ var _effect_rows: Array[Dictionary] = []
 @onready var _item_resource_detail: TextEdit = %ItemResourceDetail
 
 @onready var _actor_save_dir_input: LineEdit = %ActorSaveDirInput
+@onready var _actor_catalog_path_input: LineEdit = %ActorCatalogPathInput
 @onready var _actor_file_name_input: LineEdit = %ActorFileNameInput
 @onready var _actor_id_input: LineEdit = %ActorIdInput
 @onready var _actor_display_name_input: LineEdit = %ActorDisplayNameInput
@@ -57,6 +59,7 @@ var _effect_rows: Array[Dictionary] = []
 @onready var _actor_resource_detail: TextEdit = %ActorResourceDetail
 
 @onready var _dir_picker: EditorFileDialog = %DirPicker
+@onready var _catalog_file_picker: EditorFileDialog = %CatalogFilePicker
 @onready var _result_label: Label = %ResultLabel
 
 var _item_browser_paths: Array[String] = []
@@ -77,6 +80,7 @@ func _ready() -> void:
 func _bind_signals() -> void:
 	%ItemSaveDirBrowseButton.pressed.connect(_open_dir_picker.bind(PathTarget.ITEM_SAVE_DIR))
 	%ActorSaveDirBrowseButton.pressed.connect(_open_dir_picker.bind(PathTarget.ACTOR_SAVE_DIR))
+	%ActorCatalogPathBrowseButton.pressed.connect(_open_catalog_file_picker)
 	%ItemBrowserDirBrowseButton.pressed.connect(_open_dir_picker.bind(PathTarget.ITEM_BROWSER_DIR))
 	%ActorBrowserDirBrowseButton.pressed.connect(_open_dir_picker.bind(PathTarget.ACTOR_BROWSER_DIR))
 	%AddEffectButton.pressed.connect(_on_add_effect_pressed)
@@ -91,6 +95,7 @@ func _bind_signals() -> void:
 	_item_resource_list.item_selected.connect(_on_item_resource_selected)
 	_actor_resource_list.item_selected.connect(_on_actor_resource_selected)
 	_dir_picker.dir_selected.connect(_on_dir_selected)
+	_catalog_file_picker.file_selected.connect(_on_catalog_file_selected)
 
 
 func _prepare_effect_options() -> void:
@@ -103,6 +108,10 @@ func _prepare_effect_options() -> void:
 func _open_dir_picker(target: PathTarget) -> void:
 	_pending_path_target = target
 	_dir_picker.popup_centered_ratio(0.7)
+
+
+func _open_catalog_file_picker() -> void:
+	_catalog_file_picker.popup_centered_ratio(0.7)
 
 
 func _on_dir_selected(path: String) -> void:
@@ -121,6 +130,14 @@ func _on_dir_selected(path: String) -> void:
 		PathTarget.ACTOR_BROWSER_DIR:
 			_actor_browser_dir_input.text = localized
 			_refresh_actor_browser()
+
+
+func _on_catalog_file_selected(path: String) -> void:
+	var localized := _to_res_path(path)
+	if localized.is_empty():
+		_set_result("selected path is outside project: %s" % path, true)
+		return
+	_actor_catalog_path_input.text = localized
 
 
 func _to_res_path(path: String) -> String:
@@ -248,6 +265,7 @@ func _on_create_item_pressed() -> void:
 
 func _on_create_actor_pressed() -> void:
 	var save_dir := _actor_save_dir_input.text.strip_edges()
+	var catalog_path := _actor_catalog_path_input.text.strip_edges()
 	var file_name := _actor_file_name_input.text.strip_edges()
 	var actor_id_text := _actor_id_input.text.strip_edges()
 	var display_name := _actor_display_name_input.text.strip_edges()
@@ -299,7 +317,12 @@ func _on_create_actor_pressed() -> void:
 
 	_refresh_filesystem()
 	_refresh_actor_browser()
-	_set_result("actor created: %s" % save_path, false)
+
+	var append_err := _append_actor_to_catalog(catalog_path, save_path, StringName(actor_id_text))
+	if append_err.is_empty():
+		_set_result("actor created + catalog updated: %s" % save_path, false)
+		return
+	_set_result("actor created, catalog update failed: %s" % append_err, true)
 
 
 func _refresh_item_browser() -> void:
@@ -428,6 +451,38 @@ func _refresh_filesystem() -> void:
 		_editor_interface.get_resource_filesystem().scan()
 
 
+func _append_actor_to_catalog(catalog_path: String, actor_path: String, actor_id: StringName) -> String:
+	if catalog_path.is_empty():
+		return "catalog_path is empty"
+	if not catalog_path.begins_with("res://"):
+		return "catalog_path must start with res://"
+	if not ResourceLoader.exists(catalog_path):
+		return "catalog file does not exist: %s" % catalog_path
+
+	var catalog := load(catalog_path)
+	if not (catalog is ActorCatalog):
+		return "resource is not ActorCatalog: %s" % catalog_path
+
+	var typed_catalog := catalog as ActorCatalog
+	for existing in typed_catalog.actors:
+		if existing == null:
+			continue
+		if existing.actor_id == actor_id:
+			return "duplicate actor_id in catalog: %s" % String(actor_id)
+
+	var actor_resource := load(actor_path)
+	if not (actor_resource is ActorDefinition):
+		return "created actor is not ActorDefinition: %s" % actor_path
+
+	typed_catalog.actors.append(actor_resource as ActorDefinition)
+	var save_err := ResourceSaver.save(typed_catalog, catalog_path)
+	if save_err != OK:
+		return "failed to save catalog (%d): %s" % [save_err, catalog_path]
+
+	_refresh_filesystem()
+	return ""
+
+
 func _build_tags(extra_tags_csv: String) -> Array[StringName]:
 	var out := _parse_csv_to_string_name_array(extra_tags_csv)
 	var seen: Dictionary = {}
@@ -491,6 +546,7 @@ func _reset_item_form() -> void:
 
 func _reset_actor_form() -> void:
 	_actor_save_dir_input.text = DEFAULT_ACTOR_SAVE_DIR
+	_actor_catalog_path_input.text = DEFAULT_ACTOR_CATALOG_PATH
 	_actor_file_name_input.text = ""
 	_actor_id_input.text = ""
 	_actor_display_name_input.text = ""

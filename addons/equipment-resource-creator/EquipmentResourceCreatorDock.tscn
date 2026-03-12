@@ -264,6 +264,24 @@ unique_name_in_owner = true
 layout_mode = 2
 text = "Browse"
 
+[node name="ActorCatalogPathLabel" type="Label" parent="Tabs/ActorDefinition/ActorForm"]
+layout_mode = 2
+text = "catalog_path"
+
+[node name="ActorCatalogPathRow" type="HBoxContainer" parent="Tabs/ActorDefinition/ActorForm"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="ActorCatalogPathInput" type="LineEdit" parent="Tabs/ActorDefinition/ActorForm/ActorCatalogPathRow"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="ActorCatalogPathBrowseButton" type="Button" parent="Tabs/ActorDefinition/ActorForm/ActorCatalogPathRow"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Browse"
+
 [node name="ActorFileNameLabel" type="Label" parent="Tabs/ActorDefinition/ActorForm"]
 layout_mode = 2
 text = "file_name"
@@ -513,3 +531,11 @@ title = "Select Save Folder"
 ok_button_text = "Select"
 access = 2
 file_mode = 2
+
+[node name="CatalogFilePicker" type="EditorFileDialog" parent="."]
+unique_name_in_owner = true
+title = "Select Actor Catalog"
+ok_button_text = "Select"
+access = 2
+file_mode = 0
+filters = PackedStringArray("*.tres ; Text Resource", "*.res ; Binary Resource")
