@@ -1,25 +1,12 @@
 extends Node
 class_name ExpeditionImGuiDebugPanel
 
-const StartRequestRef = preload("res://src/expedition_system/expedition/model/ExpeditionStartRequest.gd")
 const RuntimeRef = preload("res://src/expedition_system/expedition/runtime/ExpeditionRuntime.gd")
-const LocationDefRef = preload("res://src/expedition_system/expedition/content/ExpeditionLocationDef.gd")
-const SquadRuntimeRef = preload("res://src/expedition_system/squad/SquadRuntime.gd")
-
-const DEFAULT_LOCATION_PATH := "res://data/devtest/expedition_v2/locations/forest_outpost_v2.tres"
-const DEFAULT_SQUAD_PATH := "res://data/devtest/expedition_v2/squads/default_squad_runtime.tres"
-const INPUT_TEXT_CAPACITY: int = 256
 
 @export var runtime_path: NodePath
 @export var enabled_in_debug: bool = true
 @export var toggle_key: Key = KEY_F10
 @export var show_demo_window: bool = false
-@export var default_location_path: String = DEFAULT_LOCATION_PATH
-@export var default_difficulty: int = 1
-@export var default_sequence_length: int = 3
-@export var default_seed: int = -1
-@export var default_squad_path: String = DEFAULT_SQUAD_PATH
-@export var squad_runtime_override: Resource
 
 var _runtime: Node
 var _imgui: Object
@@ -27,15 +14,8 @@ var _debug_visible: bool = true
 var _last_action_message: String = "idle"
 var _last_result: RefCounted
 
-var _location_path_input: Array[String] = [DEFAULT_LOCATION_PATH]
-var _difficulty_input: Array[int] = [1]
-var _sequence_length_input: Array[int] = [3]
-var _seed_input: Array[int] = [-1]
-var _squad_runtime_path_input: Array[String] = [DEFAULT_SQUAD_PATH]
-
 
 func _ready() -> void:
-	_reset_inputs()
 	_resolve_runtime_from_path()
 	_resolve_imgui_api()
 
@@ -68,10 +48,6 @@ func set_runtime(node: Node) -> void:
 	_connect_runtime_signals()
 	if _runtime != null and _runtime.is_inside_tree() and is_inside_tree():
 		runtime_path = get_path_to(_runtime)
-
-
-func set_visible_debug_ui(v: bool) -> void:
-	_debug_visible = v
 
 
 func _process(_delta: float) -> void:
@@ -150,7 +126,6 @@ func _draw_imgui_panel() -> void:
 
 	if _imgui.Begin("Expedition Runtime Debug"):
 		_draw_runtime_state()
-		_draw_input_fields()
 		_draw_actions()
 		_draw_result_snapshot()
 	_imgui.End()
@@ -172,8 +147,8 @@ func _draw_runtime_state() -> void:
 	_imgui.Text("sequence_len: %d" % state.generated_sequence.size())
 	_imgui.Text("location_id: %s" % String(state.location_id))
 	_imgui.Text("difficulty: %d" % state.difficulty)
-	if state.squad_runtime != null:
-		var debug_counter: int = int(state.squad_runtime.get_shared(&"debug_event_counter", 0))
+	if state.squad_runtime != null and is_instance_valid(state.squad_runtime) and state.squad_runtime.has_method("get_shared"):
+		var debug_counter: int = int(state.squad_runtime.call("get_shared", &"debug_event_counter", 0))
 		_imgui.Text("squad.debug_event_counter: %d" % debug_counter)
 
 	var current_event: Node = _runtime.get_current_event_instance()
@@ -188,21 +163,9 @@ func _draw_runtime_state() -> void:
 	_imgui.Text("action: %s" % _last_action_message)
 
 
-func _draw_input_fields() -> void:
-	_imgui.SeparatorText("Start Input")
-	_imgui.InputText("location_path", _location_path_input, INPUT_TEXT_CAPACITY)
-	_imgui.InputText("squad_runtime_path", _squad_runtime_path_input, INPUT_TEXT_CAPACITY)
-	_imgui.DragInt("difficulty", _difficulty_input)
-	_imgui.DragInt("sequence_length", _sequence_length_input)
-	_imgui.DragInt("seed (-1 random)", _seed_input)
-
-
 func _draw_actions() -> void:
 	_imgui.SeparatorText("Flow Actions")
 
-	if _imgui.Button("start_new_run"):
-		_handle_start_new_run()
-	_imgui.SameLine()
 	if _imgui.Button("choose_continue"):
 		_handle_choose_continue()
 
@@ -227,22 +190,6 @@ func _draw_result_snapshot() -> void:
 	_imgui.Text("seed: %d" % result.run_seed)
 
 
-func _handle_start_new_run() -> void:
-	if not _has_runtime():
-		_last_action_message = "start_new_run blocked: runtime missing"
-		return
-
-	var request = _build_start_request()
-	if request == null:
-		_last_action_message = "start_new_run blocked: invalid request"
-		return
-
-	var ok: bool = _runtime.start_new_run(request)
-	_last_action_message = "start_new_run -> %s" % str(ok)
-	if ok:
-		_last_result = null
-
-
 func _handle_choose_continue() -> void:
 	if not _has_runtime():
 		_last_action_message = "choose_continue blocked: runtime missing"
@@ -264,51 +211,6 @@ func _handle_choose_retreat() -> void:
 	if _runtime.is_queued_for_deletion():
 		_disconnect_runtime_signals()
 		_runtime = null
-
-
-func _build_start_request() -> RefCounted:
-	var location_path: String = _location_path_input[0].strip_edges()
-	if location_path.is_empty():
-		return null
-
-	var location_res := load(location_path)
-	if location_res == null or location_res.get_script() != LocationDefRef:
-		return null
-
-	var request := StartRequestRef.new()
-	request.location = location_res
-	request.difficulty = _difficulty_input[0]
-	request.options = {
-		"sequence_length": maxi(_sequence_length_input[0], 1),
-	}
-
-	var seed_value: int = _seed_input[0]
-	request.run_seed = 0 if seed_value < 0 else seed_value
-	request.squad = _load_squad_runtime_template()
-	if not request.is_valid():
-		return null
-	return request
-
-
-func _load_squad_runtime_template() -> Resource:
-	if squad_runtime_override != null:
-		return squad_runtime_override
-
-	var squad_path: String = _squad_runtime_path_input[0].strip_edges()
-	if squad_path.is_empty():
-		return null
-	var squad_res := load(squad_path)
-	if squad_res == null or squad_res.get_script() != SquadRuntimeRef:
-		return null
-	return squad_res
-
-
-func _reset_inputs() -> void:
-	_location_path_input[0] = default_location_path
-	_difficulty_input[0] = default_difficulty
-	_sequence_length_input[0] = default_sequence_length
-	_seed_input[0] = default_seed
-	_squad_runtime_path_input[0] = default_squad_path
 
 
 func _on_runtime_ended(result: RefCounted) -> void:

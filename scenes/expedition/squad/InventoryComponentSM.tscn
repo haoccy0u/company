@@ -1,0 +1,6 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://src/expedition_system/squad/InventoryComponentSM.gd" id="1_inventory_component_sm_script"]
+
+[node name="InventoryComponentSM" type="Node"]
+script = ExtResource("1_inventory_component_sm_script")

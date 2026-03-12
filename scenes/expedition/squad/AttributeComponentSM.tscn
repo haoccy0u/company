@@ -1,0 +1,52 @@
+[gd_scene load_steps=14 format=3]
+
+[ext_resource type="Script" path="res://src/expedition_system/squad/AttributeComponentSM.gd" id="1_attribute_component_sm_script"]
+[ext_resource type="Script" path="res://src/attribute_framework/AttributeSet.gd" id="2_attr_set_script"]
+[ext_resource type="Script" path="res://src/attribute_framework/Attribute.gd" id="3_attr_script"]
+[ext_resource type="Script" path="res://src/attribute_framework/RuntimeHpAttribute.gd" id="4_hp_attr_script"]
+
+[sub_resource type="Resource" id="Resource_strength"]
+script = ExtResource("3_attr_script")
+attribute_name = "strength"
+
+[sub_resource type="Resource" id="Resource_constitution"]
+script = ExtResource("3_attr_script")
+attribute_name = "constitution"
+
+[sub_resource type="Resource" id="Resource_dexterity"]
+script = ExtResource("3_attr_script")
+attribute_name = "dexterity"
+
+[sub_resource type="Resource" id="Resource_perception"]
+script = ExtResource("3_attr_script")
+attribute_name = "perception"
+
+[sub_resource type="Resource" id="Resource_will"]
+script = ExtResource("3_attr_script")
+attribute_name = "will"
+
+[sub_resource type="Resource" id="Resource_intelligence"]
+script = ExtResource("3_attr_script")
+attribute_name = "intelligence"
+
+[sub_resource type="Resource" id="Resource_luck"]
+script = ExtResource("3_attr_script")
+attribute_name = "luck"
+
+[sub_resource type="Resource" id="Resource_hp_max"]
+script = ExtResource("3_attr_script")
+attribute_name = "hp_max"
+base_value = 1.0
+
+[sub_resource type="Resource" id="Resource_hp"]
+script = ExtResource("4_hp_attr_script")
+attribute_name = "hp"
+base_value = 1.0
+
+[sub_resource type="Resource" id="Resource_attr_set"]
+script = ExtResource("2_attr_set_script")
+attributes = Array[ExtResource("3_attr_script")]([SubResource("Resource_strength"), SubResource("Resource_constitution"), SubResource("Resource_dexterity"), SubResource("Resource_perception"), SubResource("Resource_will"), SubResource("Resource_intelligence"), SubResource("Resource_luck"), SubResource("Resource_hp_max"), SubResource("Resource_hp")])
+
+[node name="AttributeComponentSM" type="Node"]
+script = ExtResource("1_attribute_component_sm_script")
+attribute_set = SubResource("Resource_attr_set")

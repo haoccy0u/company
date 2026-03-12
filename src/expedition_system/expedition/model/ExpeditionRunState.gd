@@ -14,7 +14,7 @@ var run_seed: int = 0
 var generated_sequence: Array[PackedScene] = []
 var step_index: int = -1
 var phase: StringName = PHASE_IDLE
-var squad_runtime: Resource
+var squad_runtime: Node
 
 
 func reset() -> void:

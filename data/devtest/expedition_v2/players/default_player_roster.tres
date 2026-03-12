@@ -1,0 +1,22 @@
+[gd_resource type="Resource" script_class="PlayerActorRoster" format=3]
+
+[ext_resource type="Script" path="res://src/actor_system/PlayerActorRoster.gd" id="1_roster_script"]
+[ext_resource type="Script" path="res://src/actor_system/PlayerActorData.gd" id="2_player_actor_script"]
+
+[sub_resource type="Resource" id="Resource_player_observer"]
+script = ExtResource("2_player_actor_script")
+player_actor_id = &"player_observer"
+actor_id = &"observer"
+level = 1
+equipment_ids = Array[StringName]([&"iron_sword"])
+
+[sub_resource type="Resource" id="Resource_player_robot"]
+script = ExtResource("2_player_actor_script")
+player_actor_id = &"player_robot"
+actor_id = &"robot"
+level = 1
+equipment_ids = Array[StringName]([&"wood_shield"])
+
+[resource]
+script = ExtResource("1_roster_script")
+players = Array[ExtResource("2_player_actor_script")]([SubResource("Resource_player_observer"), SubResource("Resource_player_robot")])

@@ -1,0 +1,541 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://addons/equipment-resource-creator/EquipmentResourceCreatorDock.gd" id="1_dock_script"]
+
+[node name="ResourceCreatorDock" type="VBoxContainer"]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+script = ExtResource("1_dock_script")
+
+[node name="Tabs" type="TabContainer" parent="."]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+
+[node name="EquipmentItem" type="VBoxContainer" parent="Tabs"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+
+[node name="ItemForm" type="GridContainer" parent="Tabs/EquipmentItem"]
+layout_mode = 2
+size_flags_horizontal = 3
+columns = 2
+
+[node name="ItemSaveDirLabel" type="Label" parent="Tabs/EquipmentItem/ItemForm"]
+layout_mode = 2
+text = "save_dir"
+
+[node name="ItemSaveDirRow" type="HBoxContainer" parent="Tabs/EquipmentItem/ItemForm"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="ItemSaveDirInput" type="LineEdit" parent="Tabs/EquipmentItem/ItemForm/ItemSaveDirRow"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="ItemSaveDirBrowseButton" type="Button" parent="Tabs/EquipmentItem/ItemForm/ItemSaveDirRow"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Browse"
+
+[node name="ItemFileNameLabel" type="Label" parent="Tabs/EquipmentItem/ItemForm"]
+layout_mode = 2
+text = "file_name"
+
+[node name="ItemFileNameInput" type="LineEdit" parent="Tabs/EquipmentItem/ItemForm"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="ItemIdLabel" type="Label" parent="Tabs/EquipmentItem/ItemForm"]
+layout_mode = 2
+text = "item_id"
+
+[node name="ItemIdInput" type="LineEdit" parent="Tabs/EquipmentItem/ItemForm"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="ItemNameLabel" type="Label" parent="Tabs/EquipmentItem/ItemForm"]
+layout_mode = 2
+text = "item_name"
+
+[node name="ItemNameInput" type="LineEdit" parent="Tabs/EquipmentItem/ItemForm"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="ItemDescriptionLabel" type="Label" parent="Tabs/EquipmentItem/ItemForm"]
+layout_mode = 2
+text = "description"
+
+[node name="ItemDescriptionInput" type="LineEdit" parent="Tabs/EquipmentItem/ItemForm"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="ItemTexturePathLabel" type="Label" parent="Tabs/EquipmentItem/ItemForm"]
+layout_mode = 2
+text = "texture_path(optional)"
+
+[node name="ItemTexturePathInput" type="LineEdit" parent="Tabs/EquipmentItem/ItemForm"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="ItemExtraTagsLabel" type="Label" parent="Tabs/EquipmentItem/ItemForm"]
+layout_mode = 2
+text = "extra_tags(csv)"
+
+[node name="ItemExtraTagsInput" type="LineEdit" parent="Tabs/EquipmentItem/ItemForm"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="ItemMaxStackLabel" type="Label" parent="Tabs/EquipmentItem/ItemForm"]
+layout_mode = 2
+text = "max_stack"
+
+[node name="ItemMaxStackInput" type="SpinBox" parent="Tabs/EquipmentItem/ItemForm"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+min_value = 1.0
+max_value = 9999.0
+step = 1.0
+value = 1.0
+
+[node name="ItemSep" type="HSeparator" parent="Tabs/EquipmentItem"]
+layout_mode = 2
+
+[node name="EffectTitle" type="Label" parent="Tabs/EquipmentItem"]
+layout_mode = 2
+text = "equip_effect editor"
+
+[node name="EffectForm" type="HBoxContainer" parent="Tabs/EquipmentItem"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="EffectOpInput" type="OptionButton" parent="Tabs/EquipmentItem/EffectForm"]
+unique_name_in_owner = true
+layout_mode = 2
+
+[node name="EffectAttrInput" type="LineEdit" parent="Tabs/EquipmentItem/EffectForm"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+placeholder_text = "attr (e.g. strength)"
+
+[node name="EffectValueInput" type="LineEdit" parent="Tabs/EquipmentItem/EffectForm"]
+unique_name_in_owner = true
+layout_mode = 2
+custom_minimum_size = Vector2(120, 0)
+placeholder_text = "value (float)"
+
+[node name="AddEffectButton" type="Button" parent="Tabs/EquipmentItem/EffectForm"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Add Effect"
+
+[node name="EffectList" type="ItemList" parent="Tabs/EquipmentItem"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+custom_minimum_size = Vector2(0, 140)
+
+[node name="EffectActions" type="HBoxContainer" parent="Tabs/EquipmentItem"]
+layout_mode = 2
+
+[node name="RemoveSelectedEffectButton" type="Button" parent="Tabs/EquipmentItem/EffectActions"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Remove Selected"
+
+[node name="ClearEffectsButton" type="Button" parent="Tabs/EquipmentItem/EffectActions"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Clear Effects"
+
+[node name="ItemActions" type="HBoxContainer" parent="Tabs/EquipmentItem"]
+layout_mode = 2
+
+[node name="CreateItemButton" type="Button" parent="Tabs/EquipmentItem/ItemActions"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Create Item Resource"
+
+[node name="ResetItemButton" type="Button" parent="Tabs/EquipmentItem/ItemActions"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Reset"
+
+[node name="ItemBrowserSep" type="HSeparator" parent="Tabs/EquipmentItem"]
+layout_mode = 2
+
+[node name="ItemBrowserTitle" type="Label" parent="Tabs/EquipmentItem"]
+layout_mode = 2
+text = "resource browser"
+
+[node name="ItemBrowserForm" type="GridContainer" parent="Tabs/EquipmentItem"]
+layout_mode = 2
+size_flags_horizontal = 3
+columns = 2
+
+[node name="ItemBrowserDirLabel" type="Label" parent="Tabs/EquipmentItem/ItemBrowserForm"]
+layout_mode = 2
+text = "browse_path"
+
+[node name="ItemBrowserDirRow" type="HBoxContainer" parent="Tabs/EquipmentItem/ItemBrowserForm"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="ItemBrowserDirInput" type="LineEdit" parent="Tabs/EquipmentItem/ItemBrowserForm/ItemBrowserDirRow"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="ItemBrowserDirBrowseButton" type="Button" parent="Tabs/EquipmentItem/ItemBrowserForm/ItemBrowserDirRow"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Browse"
+
+[node name="ItemBrowserActions" type="HBoxContainer" parent="Tabs/EquipmentItem"]
+layout_mode = 2
+
+[node name="RefreshItemBrowserButton" type="Button" parent="Tabs/EquipmentItem/ItemBrowserActions"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Refresh"
+
+[node name="ItemBrowserSplit" type="HSplitContainer" parent="Tabs/EquipmentItem"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+split_offset = 280
+
+[node name="ItemResourceList" type="ItemList" parent="Tabs/EquipmentItem/ItemBrowserSplit"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+custom_minimum_size = Vector2(0, 140)
+
+[node name="ItemResourceDetail" type="TextEdit" parent="Tabs/EquipmentItem/ItemBrowserSplit"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+editable = false
+
+[node name="ActorDefinition" type="VBoxContainer" parent="Tabs"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+
+[node name="ActorForm" type="GridContainer" parent="Tabs/ActorDefinition"]
+layout_mode = 2
+size_flags_horizontal = 3
+columns = 2
+
+[node name="ActorSaveDirLabel" type="Label" parent="Tabs/ActorDefinition/ActorForm"]
+layout_mode = 2
+text = "save_dir"
+
+[node name="ActorSaveDirRow" type="HBoxContainer" parent="Tabs/ActorDefinition/ActorForm"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="ActorSaveDirInput" type="LineEdit" parent="Tabs/ActorDefinition/ActorForm/ActorSaveDirRow"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="ActorSaveDirBrowseButton" type="Button" parent="Tabs/ActorDefinition/ActorForm/ActorSaveDirRow"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Browse"
+
+[node name="ActorCatalogPathLabel" type="Label" parent="Tabs/ActorDefinition/ActorForm"]
+layout_mode = 2
+text = "catalog_path"
+
+[node name="ActorCatalogPathRow" type="HBoxContainer" parent="Tabs/ActorDefinition/ActorForm"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="ActorCatalogPathInput" type="LineEdit" parent="Tabs/ActorDefinition/ActorForm/ActorCatalogPathRow"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="ActorCatalogPathBrowseButton" type="Button" parent="Tabs/ActorDefinition/ActorForm/ActorCatalogPathRow"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Browse"
+
+[node name="ActorFileNameLabel" type="Label" parent="Tabs/ActorDefinition/ActorForm"]
+layout_mode = 2
+text = "file_name"
+
+[node name="ActorFileNameInput" type="LineEdit" parent="Tabs/ActorDefinition/ActorForm"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="ActorIdLabel" type="Label" parent="Tabs/ActorDefinition/ActorForm"]
+layout_mode = 2
+text = "actor_id"
+
+[node name="ActorIdInput" type="LineEdit" parent="Tabs/ActorDefinition/ActorForm"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="ActorDisplayNameLabel" type="Label" parent="Tabs/ActorDefinition/ActorForm"]
+layout_mode = 2
+text = "display_name"
+
+[node name="ActorDisplayNameInput" type="LineEdit" parent="Tabs/ActorDefinition/ActorForm"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="ActorDescriptionLabel" type="Label" parent="Tabs/ActorDefinition/ActorForm"]
+layout_mode = 2
+text = "description"
+
+[node name="ActorDescriptionInput" type="LineEdit" parent="Tabs/ActorDefinition/ActorForm"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="ActorTagsLabel" type="Label" parent="Tabs/ActorDefinition/ActorForm"]
+layout_mode = 2
+text = "tags(csv)"
+
+[node name="ActorTagsInput" type="LineEdit" parent="Tabs/ActorDefinition/ActorForm"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="ActorStrengthLabel" type="Label" parent="Tabs/ActorDefinition/ActorForm"]
+layout_mode = 2
+text = "strength"
+
+[node name="ActorStrengthInput" type="SpinBox" parent="Tabs/ActorDefinition/ActorForm"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+min_value = -9999.0
+max_value = 9999.0
+step = 0.1
+
+[node name="ActorConstitutionLabel" type="Label" parent="Tabs/ActorDefinition/ActorForm"]
+layout_mode = 2
+text = "constitution"
+
+[node name="ActorConstitutionInput" type="SpinBox" parent="Tabs/ActorDefinition/ActorForm"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+min_value = -9999.0
+max_value = 9999.0
+step = 0.1
+
+[node name="ActorDexterityLabel" type="Label" parent="Tabs/ActorDefinition/ActorForm"]
+layout_mode = 2
+text = "dexterity"
+
+[node name="ActorDexterityInput" type="SpinBox" parent="Tabs/ActorDefinition/ActorForm"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+min_value = -9999.0
+max_value = 9999.0
+step = 0.1
+
+[node name="ActorPerceptionLabel" type="Label" parent="Tabs/ActorDefinition/ActorForm"]
+layout_mode = 2
+text = "perception"
+
+[node name="ActorPerceptionInput" type="SpinBox" parent="Tabs/ActorDefinition/ActorForm"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+min_value = -9999.0
+max_value = 9999.0
+step = 0.1
+
+[node name="ActorWillLabel" type="Label" parent="Tabs/ActorDefinition/ActorForm"]
+layout_mode = 2
+text = "will"
+
+[node name="ActorWillInput" type="SpinBox" parent="Tabs/ActorDefinition/ActorForm"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+min_value = -9999.0
+max_value = 9999.0
+step = 0.1
+
+[node name="ActorIntelligenceLabel" type="Label" parent="Tabs/ActorDefinition/ActorForm"]
+layout_mode = 2
+text = "intelligence"
+
+[node name="ActorIntelligenceInput" type="SpinBox" parent="Tabs/ActorDefinition/ActorForm"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+min_value = -9999.0
+max_value = 9999.0
+step = 0.1
+
+[node name="ActorLuckLabel" type="Label" parent="Tabs/ActorDefinition/ActorForm"]
+layout_mode = 2
+text = "luck"
+
+[node name="ActorLuckInput" type="SpinBox" parent="Tabs/ActorDefinition/ActorForm"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+min_value = -9999.0
+max_value = 9999.0
+step = 0.1
+
+[node name="ActorSkillIdsLabel" type="Label" parent="Tabs/ActorDefinition/ActorForm"]
+layout_mode = 2
+text = "skill_ids(csv)"
+
+[node name="ActorSkillIdsInput" type="LineEdit" parent="Tabs/ActorDefinition/ActorForm"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="ActorPassiveIdsLabel" type="Label" parent="Tabs/ActorDefinition/ActorForm"]
+layout_mode = 2
+text = "passive_ids(csv)"
+
+[node name="ActorPassiveIdsInput" type="LineEdit" parent="Tabs/ActorDefinition/ActorForm"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="ActorAiProfileLabel" type="Label" parent="Tabs/ActorDefinition/ActorForm"]
+layout_mode = 2
+text = "ai_profile_id"
+
+[node name="ActorAiProfileInput" type="LineEdit" parent="Tabs/ActorDefinition/ActorForm"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="ActorCaptureProfileLabel" type="Label" parent="Tabs/ActorDefinition/ActorForm"]
+layout_mode = 2
+text = "capture_profile_id"
+
+[node name="ActorCaptureProfileInput" type="LineEdit" parent="Tabs/ActorDefinition/ActorForm"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="ActorActions" type="HBoxContainer" parent="Tabs/ActorDefinition"]
+layout_mode = 2
+
+[node name="CreateActorButton" type="Button" parent="Tabs/ActorDefinition/ActorActions"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Create ActorDefinition"
+
+[node name="ResetActorButton" type="Button" parent="Tabs/ActorDefinition/ActorActions"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Reset"
+
+[node name="ActorBrowserSep" type="HSeparator" parent="Tabs/ActorDefinition"]
+layout_mode = 2
+
+[node name="ActorBrowserTitle" type="Label" parent="Tabs/ActorDefinition"]
+layout_mode = 2
+text = "resource browser"
+
+[node name="ActorBrowserForm" type="GridContainer" parent="Tabs/ActorDefinition"]
+layout_mode = 2
+size_flags_horizontal = 3
+columns = 2
+
+[node name="ActorBrowserDirLabel" type="Label" parent="Tabs/ActorDefinition/ActorBrowserForm"]
+layout_mode = 2
+text = "browse_path"
+
+[node name="ActorBrowserDirRow" type="HBoxContainer" parent="Tabs/ActorDefinition/ActorBrowserForm"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="ActorBrowserDirInput" type="LineEdit" parent="Tabs/ActorDefinition/ActorBrowserForm/ActorBrowserDirRow"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="ActorBrowserDirBrowseButton" type="Button" parent="Tabs/ActorDefinition/ActorBrowserForm/ActorBrowserDirRow"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Browse"
+
+[node name="ActorBrowserActions" type="HBoxContainer" parent="Tabs/ActorDefinition"]
+layout_mode = 2
+
+[node name="RefreshActorBrowserButton" type="Button" parent="Tabs/ActorDefinition/ActorBrowserActions"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Refresh"
+
+[node name="ActorBrowserSplit" type="HSplitContainer" parent="Tabs/ActorDefinition"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+split_offset = 280
+
+[node name="ActorResourceList" type="ItemList" parent="Tabs/ActorDefinition/ActorBrowserSplit"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+custom_minimum_size = Vector2(0, 140)
+
+[node name="ActorResourceDetail" type="TextEdit" parent="Tabs/ActorDefinition/ActorBrowserSplit"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+editable = false
+
+[node name="ResultLabel" type="Label" parent="."]
+unique_name_in_owner = true
+layout_mode = 2
+custom_minimum_size = Vector2(240, 56)
+autowrap_mode = 2
+text = "ready"
+
+[node name="DirPicker" type="EditorFileDialog" parent="."]
+unique_name_in_owner = true
+title = "Select Save Folder"
+ok_button_text = "Select"
+access = 2
+file_mode = 2
+
+[node name="CatalogFilePicker" type="EditorFileDialog" parent="."]
+unique_name_in_owner = true
+title = "Select Actor Catalog"
+ok_button_text = "Select"
+access = 2
+file_mode = 0
+filters = PackedStringArray("*.tres ; Text Resource", "*.res ; Binary Resource")

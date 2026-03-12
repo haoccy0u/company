@@ -9,7 +9,7 @@ var completed_steps: int = 0
 var run_seed: int = 0
 var reward_snapshot: Dictionary = {}
 var step_records: Array = []
-var final_squad_snapshot: Resource
+var final_squad_snapshot: Dictionary = {}
 
 
 func to_dict() -> Dictionary:
@@ -20,18 +20,11 @@ func to_dict() -> Dictionary:
 		record_rows.append(record.to_dict())
 
 	var squad_rows: Array[Dictionary] = []
-	if final_squad_snapshot != null:
-		for member in final_squad_snapshot.members:
-			if member == null:
-				continue
-			squad_rows.append({
-				"unit_uid": member.unit_uid,
-				"member_id": member.member_id,
-				"actor_id": member.actor_id,
-				"current_hp": member.current_hp,
-				"max_hp": member.max_hp,
-				"alive": member.alive,
-			})
+	var members_any: Variant = final_squad_snapshot.get("members", [])
+	if members_any is Array:
+		for row in members_any:
+			if row is Dictionary:
+				squad_rows.append((row as Dictionary).duplicate(true))
 
 	return {
 		"run_id": run_id,

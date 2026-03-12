@@ -1,0 +1,11 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://src/expedition_system/squad/Squad.gd" id="1_squad_script"]
+[ext_resource type="PackedScene" path="res://scenes/expedition/squad/SquadMember.tscn" id="2_member_scene"]
+
+[node name="Squad" type="Node"]
+script = ExtResource("1_squad_script")
+member_scene = ExtResource("2_member_scene")
+
+[node name="Members" type="Node" parent="."]
+unique_name_in_owner = true
