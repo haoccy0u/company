@@ -2,7 +2,7 @@
 
 [ext_resource type="PackedScene" uid="uid://c0bq485k3ma02" path="res://src/expedition_system/expedition/runtime/ExpeditionRuntime.tscn" id="1_runtime_scene"]
 [ext_resource type="Script" uid="uid://cx75c803c7rws" path="res://src/expedition_system/expedition/ui_debug/ExpeditionImGuiDebugPanel.gd" id="2_debug_panel_script"]
-[ext_resource type="Script" path="res://src/expedition_system/expedition/ui_debug/ExpeditionSquadConfigImGuiPanel.gd" id="3_config_panel_script"]
+[ext_resource type="Script" uid="uid://dwino3583o8m0" path="res://src/expedition_system/expedition/ui_debug/ExpeditionSquadConfigImGuiPanel.gd" id="3_config_panel_script"]
 
 [node name="ExpeditionSceneV2" type="Node" unique_id=2003804363]
 

@@ -35,7 +35,7 @@ window/stretch/aspect="expand"
 
 [editor_plugins]
 
-enabled=PackedStringArray("res://addons/imgui-godot/plugin.cfg", "res://addons/equipment-resource-creator/plugin.cfg")
+enabled=PackedStringArray("res://addons/equipment-resource-creator/plugin.cfg", "res://addons/imgui-godot/plugin.cfg")
 
 [physics]
 

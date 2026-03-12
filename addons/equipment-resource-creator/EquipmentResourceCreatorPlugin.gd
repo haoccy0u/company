@@ -10,6 +10,7 @@ func _enter_tree() -> void:
 	_dock_instance = DOCK_SCENE.instantiate() as Control
 	if _dock_instance == null:
 		return
+	_dock_instance.name = "ResourceCreator"
 	if _dock_instance.has_method("setup"):
 		_dock_instance.call("setup", get_editor_interface())
 	add_control_to_dock(DOCK_SLOT_RIGHT_UL, _dock_instance)
