@@ -10,7 +10,7 @@ const PLAYER_PROGRESS_ROOT_PATH := "/root/PlayerProgressRoot"
 const DEFAULT_LOCATION_PATH := "res://data/devtest/expedition_v2/locations/forest_outpost_v2.tres"
 const DEFAULT_ACTOR_CATALOG_PATH := "res://data/devtest/expedition_v2/actors/default_actor_catalog.tres"
 const DEFAULT_SQUAD_SCENE_PATH := "res://scenes/expedition/squad/Squad.tscn"
-const DEFAULT_SELECTED_IDS := "player_observer,player_robot"
+const DEFAULT_SELECTED_IDS := ""
 const INPUT_TEXT_CAPACITY: int = 512
 
 @export var runtime_path: NodePath
@@ -37,6 +37,7 @@ var _selected_player_actor_ids_input: Array[String] = [DEFAULT_SELECTED_IDS]
 var _difficulty_input: Array[int] = [1]
 var _sequence_length_input: Array[int] = [3]
 var _seed_input: Array[int] = [-1]
+var _selection_note: String = ""
 
 
 func _ready() -> void:
@@ -96,6 +97,17 @@ func _draw_input_fields() -> void:
 	_imgui.InputText("location_path", _location_path_input, INPUT_TEXT_CAPACITY)
 	_imgui.InputText("actor_catalog_path", _actor_catalog_path_input, INPUT_TEXT_CAPACITY)
 	_imgui.Text("roster_source: %s" % _roster_source)
+	var roster_state: Node = _resolve_player_roster_state()
+	var roster_ids: Array[StringName] = _collect_roster_player_actor_ids(roster_state)
+	if roster_ids.is_empty():
+		_imgui.Text("roster player_actor_ids: (none)")
+	else:
+		var roster_id_texts: PackedStringArray = []
+		for roster_id in roster_ids:
+			roster_id_texts.append(String(roster_id))
+		_imgui.Text("roster player_actor_ids: %s" % ", ".join(roster_id_texts))
+	if not _selection_note.is_empty():
+		_imgui.Text("selection: %s" % _selection_note)
 	_imgui.InputText("squad_scene_path", _squad_scene_path_input, INPUT_TEXT_CAPACITY)
 	_imgui.InputText("selected_player_actor_ids(csv)", _selected_player_actor_ids_input, INPUT_TEXT_CAPACITY)
 	_imgui.DragInt("difficulty", _difficulty_input)
@@ -143,7 +155,8 @@ func _build_start_request() -> RefCounted:
 	if squad_scene == null or not (squad_scene is PackedScene):
 		return null
 
-	var selected_player_actor_ids := _parse_selected_ids(_selected_player_actor_ids_input[0])
+	var requested_ids: Array[StringName] = _parse_selected_ids(_selected_player_actor_ids_input[0])
+	var selected_player_actor_ids: Array[StringName] = _resolve_effective_selected_ids(player_roster_state, requested_ids)
 	if selected_player_actor_ids.is_empty():
 		return null
 
@@ -177,6 +190,40 @@ func _parse_selected_ids(raw_csv: String) -> Array[StringName]:
 		seen[key] = true
 		out.append(key)
 	return out
+
+
+func _resolve_effective_selected_ids(
+	roster_state: Node,
+	requested_ids: Array[StringName]
+) -> Array[StringName]:
+	_selection_note = ""
+	var roster_ids: Array[StringName] = _collect_roster_player_actor_ids(roster_state)
+	if roster_ids.is_empty():
+		_selection_note = "no roster ids available"
+		return []
+
+	if requested_ids.is_empty():
+		_selection_note = "csv empty -> using all roster ids"
+		return roster_ids
+
+	var roster_id_map: Dictionary = {}
+	for roster_id in roster_ids:
+		roster_id_map[roster_id] = true
+
+	var filtered: Array[StringName] = []
+	var skipped: PackedStringArray = []
+	for requested_id in requested_ids:
+		if roster_id_map.has(requested_id):
+			filtered.append(requested_id)
+		else:
+			skipped.append(String(requested_id))
+
+	if filtered.is_empty():
+		_selection_note = "requested ids missing in roster (%s) -> using all roster ids" % ", ".join(skipped)
+		return roster_ids
+	if not skipped.is_empty():
+		_selection_note = "skipped missing ids: %s" % ", ".join(skipped)
+	return filtered
 
 
 func _resolve_runtime_from_path() -> void:
@@ -252,3 +299,29 @@ func _resolve_roster_state_from_progress_root() -> Node:
 
 func _is_valid_player_roster_state(roster_state: Node) -> bool:
 	return roster_state != null and roster_state.has_method("find_player_actor")
+
+
+func _collect_roster_player_actor_ids(roster_state: Node) -> Array[StringName]:
+	if roster_state == null:
+		return []
+	if not roster_state.has_method("get_players"):
+		return []
+
+	var players_variant: Variant = roster_state.call("get_players")
+	if not (players_variant is Array):
+		return []
+
+	var players: Array = players_variant
+	var out: Array[StringName] = []
+	var seen: Dictionary = {}
+	for row in players:
+		var player: PlayerActorData = row as PlayerActorData
+		if player == null:
+			continue
+		if player.player_actor_id.is_empty():
+			continue
+		if seen.has(player.player_actor_id):
+			continue
+		seen[player.player_actor_id] = true
+		out.append(player.player_actor_id)
+	return out
