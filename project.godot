@@ -15,7 +15,7 @@ imgui/config="res://addons/imgui-godot/data/ProjectImGuiConfig.tres"
 [application]
 
 config/name="Company"
-run/main_scene="uid://bxtvqljqf3re5"
+run/main_scene="res://scenes/expedition/ExpeditionSceneV2.tscn"
 config/features=PackedStringArray("4.6", "Forward Plus")
 config/icon="res://icon.svg"
 
